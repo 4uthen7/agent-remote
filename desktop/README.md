@@ -33,7 +33,7 @@ The build copies agentd's compiled output and production dependencies into
 - macOS builds are unsigned. Right-click → Open the first time, or sign/notarize for
   distribution.
 - Windows builds are unsigned; SmartScreen may ask for confirmation.
-- The macOS artifact is Apple Silicon. Windows artifacts are x64 and arm64.
+- The macOS artifact is Apple Silicon. Windows artifacts are x64.
 
 ## Security
 

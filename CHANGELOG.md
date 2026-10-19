@@ -13,7 +13,7 @@ within one release.
 - Optional port/interface/allowed-folder settings and encrypted relay sync.
 - Phone apps are unchanged and protocol-compatible (iOS 0.4.0 / Android 0.5.0).
 - agentd **0.6.0** unchanged.
-- Desktop builds are unsigned; Windows x64/arm64 and macOS arm64 artifacts.
+- Desktop builds are unsigned; Windows x64 and macOS arm64 artifacts.
 
 ## v0.7.0 — 2026-10-19
 
