@@ -25,6 +25,7 @@ import androidx.compose.material.icons.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.KeyboardArrowDown
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Folder
+import androidx.compose.material.icons.outlined.HelpOutline
 import androidx.compose.material.icons.outlined.Memory
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
@@ -48,7 +49,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 @Composable
-fun TimelineScreen(state: UiState, store: AgentStore) {
+fun TimelineScreen(state: UiState, store: AgentStore, onHelp: () -> Unit) {
     val session = state.currentSession
     val items = state.timeline
     val listState = rememberLazyListState()
@@ -121,6 +122,9 @@ fun TimelineScreen(state: UiState, store: AgentStore) {
                         )
                     }
                 }
+            }
+            IconButton(onClick = onHelp) {
+                Icon(Icons.Outlined.HelpOutline, "セットアップガイド", tint = Palette.Secondary, modifier = Modifier.size(18.dp))
             }
             IconButton(onClick = { showClose = true }) {
                 Icon(Icons.Outlined.Close, "セッションを閉じる", tint = Palette.Secondary, modifier = Modifier.size(18.dp))

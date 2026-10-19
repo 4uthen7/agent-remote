@@ -57,6 +57,18 @@ Mac へは `ws://10.0.2.2:8787/ws`、実機からは agentd が表示する LAN 
 アドレスを使います。QR ペアリングと手入力は iOS と同じです。トークンは Android
 Keystore で暗号化されます。
 
+Android のホストURL:
+
+| 状況 | URL |
+|---|---|
+| 実機（同じWi-Fi） | `ws://<MacのLAN IP>:8787/ws` |
+| Tailscale | `ws://<tailscale IP>:8787/ws` |
+| Androidエミュレータ | `ws://10.0.2.2:8787/ws` |
+
+スマートフォンで `127.0.0.1` / `localhost` は使えません。一番簡単なのは agentd の
+ターミナルに出るQRをスキャンする方法です。左上の `?` ボタンのガイドは、進捗に
+合わせて案内内容が変わります。
+
 ## ランタイムのログイン
 
 アプリからは DeepSeek Harness / Codex / Claude を起動できます。それぞれのログインが必要です:

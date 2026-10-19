@@ -194,6 +194,10 @@ class AgentStore(application: Application) : AndroidViewModel(application) {
         _state.update { it.copy(route = Route.Settings) }
     }
 
+    fun openConnect() {
+        _state.update { it.copy(route = Route.Connect, lastError = null) }
+    }
+
     fun back() {
         _state.update {
             when (it.route) {

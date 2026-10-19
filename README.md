@@ -24,9 +24,9 @@ repository.
 |---|---|
 | ![Connect](docs/screenshots/clean-connect.png) | ![Approval](docs/screenshots/clean-approval.png) |
 
-| Android sessions | Android approval |
-|---|---|
-| ![Android sessions](docs/screenshots/android-sessions.png) | ![Android approval](docs/screenshots/android-approval.png) |
+| Android sessions | Android setup guide | Android approval |
+|---|---|---|
+| ![Android sessions](docs/screenshots/android-sessions.png) | ![Android setup guide](docs/screenshots/android-guide.png) | ![Android approval](docs/screenshots/android-approval.png) |
 
 ## Features
 
@@ -41,6 +41,8 @@ repository.
   large titles, system light/dark, Japanese labels and a chat layout that stays out of the way.
 - **Debuggable Android APK** — a debug-signed, debuggable APK for `adb install` and
   inspection, with no store signing requirement.
+- **Progressive setup guide** — the `?` button at the top-left explains the host URL,
+  QR pairing and each next step; its advice advances with connection/session progress.
 - **App icon** — the black terminal mark from the connect screen, bundled with the app.
 - **Secure pairing** — QR code or URL + bearer token; the token is stored in the iOS
   Keychain or Android Keystore-encrypted preferences.
@@ -141,6 +143,21 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 
 The APK is a **debug** build: debuggable and signed with the standard Android debug key.
 It installs as `dev.fouruthent.agentremote`, separate from the iOS bundle ID.
+
+#### What goes in the host URL?
+
+Use the `WebSocket:` line printed by agentd:
+
+| Situation | Host URL |
+|---|---|
+| Phone on the same Wi-Fi | `ws://<Mac LAN IP>:8787/ws` (e.g. `ws://192.168.1.10:8787/ws`) |
+| Tailscale | `ws://<tailscale IP>:8787/ws` |
+| Android emulator | `ws://10.0.2.2:8787/ws` |
+
+Do **not** use `127.0.0.1`/`localhost` on a phone. The easiest path is to scan the QR in
+the agentd terminal — it fills both URL and token. The `?` button opens the setup guide,
+which changes its advice as you move from start → QR/host → token → connect → session →
+approval.
 
 ### 3. Pair
 

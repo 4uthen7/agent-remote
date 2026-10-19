@@ -58,6 +58,18 @@ is `ws://10.0.2.2:8787/ws`; on a phone use the LAN/Tailscale address printed by 
 QR pairing and manual URL + token work the same as iOS. The token is encrypted with
 Android Keystore.
 
+Host URL for Android:
+
+| Situation | URL |
+|---|---|
+| Phone on the same Wi-Fi | `ws://<Mac LAN IP>:8787/ws` |
+| Tailscale | `ws://<tailscale IP>:8787/ws` |
+| Android emulator | `ws://10.0.2.2:8787/ws` |
+
+Do not use `127.0.0.1`/`localhost` on the phone. The easiest path is to scan the QR code
+printed by agentd; it fills both fields. The `?` button at the top-left opens a setup
+guide whose advice changes with your progress.
+
 ## Runtime logins
 
 The app can launch DeepSeek Harness, Codex, or Claude. Each runtime uses its own login:

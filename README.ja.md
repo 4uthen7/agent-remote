@@ -25,9 +25,9 @@ Android は Jetpack Compose で実装しています。以前のサイバー調�
 |---|---|
 | ![Connect](docs/screenshots/clean-connect.png) | ![Approval](docs/screenshots/clean-approval.png) |
 
-| Android セッション | Android 承認 |
-|---|---|
-| ![Android sessions](docs/screenshots/android-sessions.png) | ![Android approval](docs/screenshots/android-approval.png) |
+| Android セッション | Android セットアップガイド | Android 承認 |
+|---|---|---|
+| ![Android sessions](docs/screenshots/android-sessions.png) | ![Android setup guide](docs/screenshots/android-guide.png) | ![Android approval](docs/screenshots/android-approval.png) |
 
 ## 機能
 
@@ -38,6 +38,7 @@ Android は Jetpack Compose で実装しています。以前のサイバー調�
 - **モデル切替** — セッション画面から、選択中ランタイムのモデルを変更
 - **ネイティブクライアント** — iOS は SwiftUI、Android は Jetpack Compose。grouped list、Large Title、システムのライト/ダーク、日本語ラベル
 - **デバッグ可能な Android APK** — debug 署名・debuggable。`adb install` で導入でき、ストア署名は不要
+- **進行に合わせたセットアップガイド** — 左上の `?` ボタンがホストURL・QR・次の手順を案内。接続やセッションの進捗に応じて内容が変わります
 - **アプリアイコン** — 接続画面の黒いターミナルマークを同梱
 - **安全なペアリング** — QR コードまたは URL + トークン。トークンは iOS の Keychain / Android の Keystore 暗号化領域に保存
 - **LAN / Tailscale** — Mac 側に inbound ポートを開けずに、tailnet 経由で外部から接続
@@ -130,6 +131,21 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 
 **debug ビルド**（debuggable / 標準 Android debug key 署名）です。パッケージ名は
 `dev.fouruthent.agentremote` で、iOS 版とは別アプリとして共存します。
+
+#### ホストURLには何を入れる？
+
+agentd が表示する `WebSocket:` の行を使います:
+
+| 状況 | ホストURL |
+|---|---|
+| 実機（同じWi-Fi） | `ws://<MacのLAN IP>:8787/ws`（例 `ws://192.168.1.10:8787/ws`） |
+| Tailscale | `ws://<tailscale IP>:8787/ws` |
+| Androidエミュレータ | `ws://10.0.2.2:8787/ws` |
+
+スマートフォンで `127.0.0.1` / `localhost` は使えません。一番簡単なのは agentd の
+ターミナルに出るQRをスキャンする方法で、URLとトークンが自動で入ります。左上の `?`
+ボタンのガイドは、開始 → QR/ホスト → トークン → 接続 → セッション → 承認の進捗に
+合わせて案内内容が変わります。
 
 ### 3. ペアリング
 

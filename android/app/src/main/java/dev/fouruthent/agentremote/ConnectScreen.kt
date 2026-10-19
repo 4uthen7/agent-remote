@@ -2,6 +2,7 @@ package dev.fouruthent.agentremote
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,7 +20,9 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.ContentPaste
+import androidx.compose.material.icons.outlined.HelpOutline
 import androidx.compose.material.icons.outlined.Shield
 import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material.icons.outlined.VisibilityOff
@@ -29,6 +32,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -54,7 +58,7 @@ import com.journeyapps.barcodescanner.ScanContract
 import com.journeyapps.barcodescanner.ScanOptions
 
 @Composable
-fun ConnectScreen(state: UiState, store: AgentStore) {
+fun ConnectScreen(state: UiState, store: AgentStore, onHelp: () -> Unit) {
     val context = LocalContext.current
     var showToken by remember { mutableStateOf(false) }
     val scanLauncher = rememberLauncherForActivityResult(ScanContract()) { result ->
@@ -70,7 +74,18 @@ fun ConnectScreen(state: UiState, store: AgentStore) {
             .imePadding()
             .padding(horizontal = 20.dp),
     ) {
-        Spacer(Modifier.height(48.dp))
+        Row(
+            Modifier.fillMaxWidth().padding(top = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            HelpButton(
+                onClick = onHelp,
+                highlight = state.serverUrl.isBlank() || state.token.isBlank(),
+            )
+            Spacer(Modifier.weight(1f))
+            Text("セットアップガイド", fontSize = 12.sp, color = Palette.Secondary)
+        }
+        Spacer(Modifier.height(18.dp))
         Text(
             "Agent Remote",
             fontSize = 34.sp,
@@ -104,7 +119,30 @@ fun ConnectScreen(state: UiState, store: AgentStore) {
                 )
             }
         }
-        Spacer(Modifier.height(30.dp))
+        Spacer(Modifier.height(22.dp))
+        Surface(
+            color = MaterialTheme.colorScheme.surface,
+            shape = RoundedCornerShape(14.dp),
+            modifier = Modifier.fillMaxWidth().clickable(onClick = onHelp),
+        ) {
+            Row(
+                Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                Icon(Icons.Outlined.HelpOutline, null, tint = Palette.Blue, modifier = Modifier.size(18.dp))
+                Column(Modifier.weight(1f)) {
+                    Text("はじめての方へ", fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                    Text(
+                        "ホストURL・QR・接続を、いまの状況に合わせて案内します",
+                        fontSize = 11.sp,
+                        color = Palette.Secondary,
+                    )
+                }
+                Icon(Icons.Outlined.ChevronRight, null, tint = Palette.Tertiary, modifier = Modifier.size(16.dp))
+            }
+        }
+        Spacer(Modifier.height(24.dp))
 
         if (state.lastError != null) {
             ErrorCard(state.lastError)
@@ -150,12 +188,20 @@ fun ConnectScreen(state: UiState, store: AgentStore) {
             )
         }
         Text(
-            "agentd が表示する URL とトークンを入力します。QR コードを使うと自動で入力されます。",
+            hostHint(state.serverUrl),
+            fontSize = 12.sp,
+            lineHeight = 17.sp,
+            color = if (isLoopbackHost(state.serverUrl)) Palette.Red else MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(start = 4.dp, end = 4.dp, top = 8.dp),
+        )
+        Text(
+            "トークン: agentd の Token: の行、または cat ~/.agent-remote/token",
             fontSize = 12.sp,
             lineHeight = 17.sp,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(horizontal = 4.dp, vertical = 8.dp),
+            modifier = Modifier.padding(start = 4.dp, end = 4.dp, top = 4.dp),
         )
+        Spacer(Modifier.height(4.dp))
         Button(
             onClick = store::connect,
             enabled = state.connection != ConnectionState.Connecting,
@@ -183,6 +229,13 @@ fun ConnectScreen(state: UiState, store: AgentStore) {
         ) {
             Text("QR コードをスキャン", fontSize = 15.sp, fontWeight = FontWeight.Medium)
         }
+        Text(
+            "Macのターミナルに出ているQRを読み取るだけ。URLとトークンが自動で入ります。",
+            fontSize = 12.sp,
+            lineHeight = 17.sp,
+            color = Palette.Secondary,
+            modifier = Modifier.padding(start = 4.dp, end = 4.dp, top = 6.dp),
+        )
 
         Spacer(Modifier.height(26.dp))
         SectionLabel("セキュリティ")
@@ -267,4 +320,20 @@ fun connectionText(state: ConnectionState): String = when (state) {
     ConnectionState.Connecting -> "接続中…"
     ConnectionState.Failed -> "接続エラー"
     else -> "未接続"
+}
+
+
+private fun isLoopbackHost(url: String): Boolean {
+    val lower = url.lowercase()
+    return lower.contains("127.0.0.1") || lower.contains("localhost")
+}
+
+private fun hostHint(url: String): String {
+    if (url.isBlank()) {
+        return "ホスト: Macのターミナルに出る WebSocket: の行を貼り付け。実機はLAN/TailscaleのIP、エミュレータは 10.0.2.2 です。"
+    }
+    if (isLoopbackHost(url)) {
+        return "127.0.0.1 / localhost はAndroid自身を指すため使えません。MacのLAN IPまたはTailscale IPに置き換えてください。"
+    }
+    return "ホスト例: ws://192.168.1.10:8787/ws（agentdの表示をそのまま使用）"
 }

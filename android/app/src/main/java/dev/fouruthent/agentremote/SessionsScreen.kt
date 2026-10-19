@@ -42,7 +42,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 @Composable
-fun SessionsScreen(state: UiState, store: AgentStore) {
+fun SessionsScreen(state: UiState, store: AgentStore, onHelp: () -> Unit) {
     Column(
         Modifier
             .fillMaxSize()
@@ -54,6 +54,7 @@ fun SessionsScreen(state: UiState, store: AgentStore) {
                 .padding(start = 20.dp, end = 12.dp, top = 14.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
+            HelpButton(onClick = onHelp, highlight = state.sessions.isEmpty())
             Spacer(Modifier.weight(1f))
             IconButton(onClick = store::refreshSessions) {
                 Icon(Icons.Outlined.Refresh, "更新", tint = Palette.Secondary)
@@ -106,7 +107,7 @@ fun SessionsScreen(state: UiState, store: AgentStore) {
                 ) {
                     Text("LOCAL TRANSPORT · TAILSCALE READY", fontSize = 9.sp, color = Palette.Secondary, letterSpacing = 1.sp)
                     Text("·", fontSize = 9.sp, color = Palette.Tertiary)
-                    Text("v${state.version.ifBlank { "0.3.0" }}", fontSize = 9.sp, color = Palette.Secondary)
+                    Text("v${state.version.ifBlank { "0.3.1" }}", fontSize = 9.sp, color = Palette.Secondary)
                 }
             }
         }

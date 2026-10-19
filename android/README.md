@@ -12,6 +12,7 @@ blue accent, chat timeline, model menu and one-shot approval cards.
 - One-shot approvals with command, working directory and justification
 - Per-runtime model menu, cancel, context usage ring
 - QR pairing and manual URL + token
+- **Setup guide** (? button, top-left) with advice that changes with progress
 - Token stored with Android Keystore (`EncryptedSharedPreferences`)
 - Debug build: debuggable, signed with the standard Android debug key
 
@@ -40,10 +41,25 @@ The APK is a **debug** build, so it is debuggable and does not need store signin
 For an emulator, the host Mac is reachable at `ws://10.0.2.2:8787/ws`; on a phone use
 the LAN or Tailscale address printed by `agentd`.
 
-## Pairing
+## Pairing and host URL
 
-Run `agentd` on the Mac, then scan its QR code or enter the URL and token manually.
-The Android app accepts the same `agentremote://pair?...` QR as iOS.
+The easiest path is to scan the QR code in the `agentd` terminal. It fills both the
+host URL and token automatically.
+
+If you enter the URL manually, use the `WebSocket:` line printed by `agentd`:
+
+| Situation | Host URL |
+|---|---|
+| Phone on the same Wi-Fi | `ws://<Mac LAN IP>:8787/ws` (e.g. `ws://192.168.1.10:8787/ws`) |
+| Tailscale | `ws://<tailscale IP>:8787/ws` |
+| Android emulator | `ws://10.0.2.2:8787/ws` |
+
+Do **not** use `127.0.0.1` or `localhost` on a phone: that points at the phone itself.
+The token is the `Token:` line, or `cat ~/.agent-remote/token` on the Mac.
+
+The `?` button at the top-left opens a setup guide. Its advice follows your progress:
+start agentd → scan QR / enter host → enter token → connect → create a session →
+approve or troubleshoot.
 
 ## Runtime logins
 
