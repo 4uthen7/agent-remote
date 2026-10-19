@@ -1,0 +1,64 @@
+name: AgentRemote
+options:
+  bundleIdPrefix: com.4uthent
+  deploymentTarget:
+    iOS: "17.0"
+  xcodeVersion: "26.0"
+  createIntermediateGroups: true
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    IPHONEOS_DEPLOYMENT_TARGET: "17.0"
+    CODE_SIGN_STYLE: Automatic
+    DEVELOPMENT_TEAM: ""
+    ENABLE_USER_SCRIPT_SANDBOXING: NO
+targets:
+  AgentRemote:
+    type: application
+    platform: iOS
+    sources:
+      - path: AgentRemote
+        excludes:
+          - "Info.plist"
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.4uthent.agentremote
+        PRODUCT_NAME: AgentRemote
+        TARGETED_DEVICE_FAMILY: "1"
+        SUPPORTS_MACCATALYST: NO
+        SUPPORTED_PLATFORMS: "iphoneos iphonesimulator"
+        GENERATE_INFOPLIST_FILE: NO
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+    info:
+      path: AgentRemote/Info.plist
+      properties:
+        CFBundleDisplayName: Agent Remote
+        CFBundleShortVersionString: "0.1.0"
+        CFBundleVersion: "1"
+        LSRequiresIPhoneOS: true
+        UILaunchScreen: {}
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        NSLocalNetworkUsageDescription: "Mac 上の agentd に接続するためにローカルネットワークを使用します。"
+        NSCameraUsageDescription: "ペアリング用 QR コードを読み取るためにカメラを使用します。"
+        CFBundleURLTypes:
+          - CFBundleURLName: com.4uthent.agentremote
+            CFBundleURLSchemes:
+              - agentremote
+        NSAppTransportSecurity:
+          NSAllowsArbitraryLoads: true
+          NSAllowsLocalNetworking: true
+    entitlements:
+      path: AgentRemote/AgentRemote.entitlements
+      properties: {}
+schemes:
+  AgentRemote:
+    build:
+      targets:
+        AgentRemote: all
+    run:
+      config: Debug
+    archive:
+      config: Release
