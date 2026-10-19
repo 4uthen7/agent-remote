@@ -53,3 +53,24 @@ jobs:
           path: |
             desktop/release/*.exe
           if-no-files-found: error
+
+
+  release:
+    needs: [macos, windows]
+    if: startsWith(github.ref, 'refs/tags/v1.')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+      - uses: softprops/action-gh-release@v2
+        with:
+          body_path: docs/releases/v1.0.0.md
+          files: |
+            artifacts/agent-remote-macos/*.dmg
+            artifacts/agent-remote-macos/*-mac.zip
+            artifacts/agent-remote-windows/*.exe
+          fail_on_unmatched_files: true
