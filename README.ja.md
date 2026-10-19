@@ -8,6 +8,7 @@
 [![Platform](https://img.shields.io/badge/Android-8%2B-3DDC84)](https://developer.android.com/)
 [![Hosts](https://img.shields.io/badge/hosts-macOS%20%7C%20Windows%20%7C%20Linux-lightgrey)](docs/platforms.md)
 [![Node](https://img.shields.io/badge/Node-22%2B-339933)](https://nodejs.org/)
+[![Cross-platform CI](https://github.com/4uthen7/agent-remote/actions/workflows/cross-platform.yml/badge.svg)](https://github.com/4uthen7/agent-remote/actions/workflows/cross-platform.yml)
 
 Mac 上で動くコーディングエージェントを、**iPhone / Android** から操作するための
 ネイティブアプリです。どちらも Node 製の小さなデーモン `agentd` にトークン認証付き
