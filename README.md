@@ -146,9 +146,13 @@ authentication is missing.
 ## Session history and resume
 
 `agentd` saves each session's summary, native runtime id, configuration and timeline to
-`AGENT_REMOTE_SYNC_DIR`. The app groups live and saved sessions by working directory
-(project). Tap an ended session to read its history; **再開** resumes the native DSH/Codex/
-Claude session and continues the same timeline.
+`AGENT_REMOTE_SYNC_DIR`. It also imports existing native history on startup: Codex
+threads, Claude Code transcripts, and DSH turn outlines. The app groups live and saved
+sessions by working directory (project). Tap a saved session to read its history;
+**再開** resumes the native DSH/Codex/Claude session and continues the same timeline.
+
+This local import is automatic. **Cross-host sync is opt-in**: configure the relay or a
+shared archive folder. Without a room key the app does not send your history anywhere.
 
 Native resume requires the runtime state to exist on the connected host. If the archive
 came from another host through a shared cloud folder, the app shows the history as
@@ -326,6 +330,7 @@ See [SECURITY.md](SECURITY.md) for the threat model and reporting instructions.
 | `AGENT_REMOTE_BIND` | `0.0.0.0` | Bind address; use `127.0.0.1` behind a proxy |
 | `AGENT_REMOTE_HOME` | `~/.agent-remote` | Token and generated ACP patch |
 | `AGENT_REMOTE_SYNC_DIR` | `~/.agent-remote/sessions` | Durable session archive; point at a cloud-synced folder for pseudo cloud sync |
+| `AGENT_REMOTE_IMPORT_HISTORY` | `1` | Import existing Codex/Claude/DSH history on startup (`0` disables) |
 | `AGENT_REMOTE_SYNC_URL` | unset | Encrypted relay base URL; enables relay sync |
 | `AGENT_REMOTE_SYNC_ROOM` | `default` | Relay room name (share this with your team) |
 | `AGENT_REMOTE_SYNC_KEY` | unset | Room encryption key; required when the relay URL is set |

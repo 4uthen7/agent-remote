@@ -1,4 +1,5 @@
 import type { ChildProcessWithoutNullStreams } from "node:child_process";
+import { existsSync, readFileSync, statSync } from "node:fs";
 import spawn from "cross-spawn";
 import { EventEmitter } from "node:events";
 import path from "node:path";
@@ -16,6 +17,23 @@ import { isConfigGroup, modelDisplayValue } from "../types.js";
 import type { RuntimeAdapter, RuntimeSnapshot } from "../runtime/types.js";
 
 const MAX_EVENTS = 2000;
+
+function secondsToMs(value: unknown, fallback = Date.now()): number {
+  const numeric = typeof value === "number" ? value : Number(value);
+  if (!Number.isFinite(numeric) || numeric <= 0) return fallback;
+  return numeric < 10_000_000_000 ? Math.round(numeric * 1000) : Math.round(numeric);
+}
+
+function itemText(content: unknown): string {
+  if (!Array.isArray(content)) return "";
+  return content
+    .map((entry) => {
+      const item = asRecord(entry);
+      return typeof item.text === "string" ? item.text : "";
+    })
+    .filter(Boolean)
+    .join("\n");
+}
 const APPROVAL_TIMEOUT_MS = 15 * 60 * 1000;
 
 export interface CodexAdapterOptions {
@@ -150,6 +168,73 @@ class CodexClient extends EventEmitter {
       this.pending.delete(id);
     }
     this.emit("exit", { reason: error.message });
+  }
+}
+
+
+function parseCodexRollout(file: string, thread: Record<string, unknown>): SessionRecord | undefined {
+  try {
+    if (statSync(file).size > 16 * 1024 * 1024) return undefined;
+    const events: AgentEvent[] = [];
+    let seq = 0;
+    let title = pickString(thread.preview, path.basename(pickString(thread.cwd), "Codex session"));
+    let cwd = pickString(thread.cwd);
+    for (const line of readFileSync(file, "utf8").split(/\r?\n/)) {
+      if (!line.trim()) continue;
+      let entry: Record<string, unknown>;
+      try {
+        entry = JSON.parse(line) as Record<string, unknown>;
+      } catch {
+        continue;
+      }
+      const payload = asRecord(entry.payload);
+      if (entry.type === "session_meta") {
+        cwd = pickString(payload.cwd, cwd);
+      }
+      if (entry.type !== "response_item" || payload.type !== "message") continue;
+      const role = pickString(payload.role);
+      if (role !== "user" && role !== "assistant") continue;
+      const content = Array.isArray(payload.content) ? payload.content.map(asRecord) : [];
+      const text = content
+        .map((item) =>
+          typeof item.text === "string"
+            ? item.text
+            : typeof item.output_text === "string"
+              ? item.output_text
+              : "",
+        )
+        .filter(Boolean)
+        .join("\n")
+        .trim();
+      if (!text) continue;
+      if (role === "user") {
+        if (text.startsWith("<recommended_plugins>") || text.startsWith("<environment_context>") || text.startsWith("<permissions instructions>")) continue;
+        events.push({ type: "user_message", text, seq: ++seq });
+        if (title === path.basename(cwd) || title.startsWith("Codex session")) title = shortTitle(text, title);
+      } else {
+        events.push({ type: "assistant_delta", text, seq: ++seq });
+      }
+    }
+    if (!events.length) return undefined;
+    const clipped = events.slice(-MAX_EVENTS);
+    const createdAt = secondsToMs(thread.createdAt);
+    const updatedAt = secondsToMs(thread.updatedAt, createdAt);
+    return {
+      id: pickString(thread.id),
+      title: pickString(thread.name, title),
+      cwd,
+      status: "idle",
+      runtime: "codex",
+      model: pickString(thread.modelProvider, "default"),
+      createdAt,
+      updatedAt,
+      events: clipped,
+      seq: clipped.length,
+      configOptions: [],
+      pendingApprovals: [],
+    } as SessionRecord;
+  } catch {
+    return undefined;
   }
 }
 
@@ -310,6 +395,80 @@ export class CodexAdapter extends EventEmitter implements RuntimeAdapter {
     });
     this.emit("session", this.summarize(session));
     return this.summarize(session);
+  }
+
+  async listHistory(): Promise<SessionRecord[]> {
+    await this.start();
+    const client = this.requireClient();
+    const list = await client.request<Record<string, unknown>>("thread/list", { limit: 100 }, 60_000);
+    const threads = Array.isArray(list.data) ? list.data.map(asRecord) : [];
+    const records: SessionRecord[] = [];
+    for (const thread of threads) {
+      const id = pickString(thread.id);
+      if (!id) continue;
+      try {
+        const result = await client.request<Record<string, unknown>>(
+          "thread/read",
+          { threadId: id, includeTurns: true },
+          60_000,
+        );
+        const data = asRecord(result.thread ?? result);
+        const cwd = pickString(data.cwd, "");
+        const turns = Array.isArray(data.turns) ? data.turns.map(asRecord) : [];
+        const events: AgentEvent[] = [];
+        let seq = 0;
+        const push = (event: Omit<AgentEvent, "seq">) => {
+          events.push({ ...event, seq: ++seq });
+        };
+        for (const turn of turns) {
+          for (const item of Array.isArray(turn.items) ? turn.items.map(asRecord) : []) {
+            const type = pickString(item.type);
+            if (type === "userMessage") {
+              const text = itemText(item.content);
+              if (text) push({ type: "user_message", text });
+            } else if (type === "agentMessage") {
+              const text = pickString(item.text);
+              if (text) push({ type: "assistant_delta", text });
+            } else if (type === "commandExecution") {
+              push({
+                type: "tool_call",
+                title: "Command",
+                kind: "command",
+                command: pickString(item.command),
+                output: pickString(item.output),
+                status: pickString(item.status),
+              });
+            }
+          }
+        }
+        const createdAt = secondsToMs(data.createdAt);
+        const updatedAt = secondsToMs(data.updatedAt, createdAt);
+        records.push({
+          id,
+          title: pickString(data.name, pickString(data.preview, path.basename(cwd) || "Codex session")),
+          cwd,
+          status: "idle",
+          runtime: "codex",
+          model: pickString(data.modelProvider, "default"),
+          createdAt,
+          updatedAt,
+          events: events.slice(-MAX_EVENTS),
+          seq: Math.min(seq, MAX_EVENTS),
+          configOptions: this.buildConfigOptions(pickString(data.modelProvider, "default")),
+          pendingApprovals: [],
+        });
+      } catch (error) {
+        const rollout = pickString(thread.path);
+        if (rollout && existsSync(rollout)) {
+          const parsed = parseCodexRollout(rollout, thread);
+          if (parsed) records.push(parsed);
+          else this.options.logger?.(`codex history parse failed (${id})`);
+        } else {
+          this.options.logger?.(`codex history read failed (${id}): ${error instanceof Error ? error.message : String(error)}`);
+        }
+      }
+    }
+    return records;
   }
 
   restoreSession(sessionId: string, record: SessionRecord): void {

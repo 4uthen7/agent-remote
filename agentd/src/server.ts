@@ -285,6 +285,9 @@ export function createAgentServer(config: AgentConfig, manager: RuntimeManager):
   manager.on("config", ({ sessionId, configOptions, model }) => {
     broadcast({ type: "models", sessionId, configOptions, model });
   });
+  manager.on("history_imported", () => {
+    sendSessionList();
+  });
   manager.on("session_removed", ({ sessionId }) => {
     broadcast({ type: "session_removed", sessionId });
     sendSessionList();

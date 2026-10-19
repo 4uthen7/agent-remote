@@ -48,6 +48,8 @@ let state = {
 };
 let settingsPath = "";
 let tokenPath = "";
+let dataHome = "";
+let sessionsDir = "";
 let settings = {};
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -56,7 +58,7 @@ function pushLog(line) {
   const text = String(line).replace(/\x1b\[[0-9;]*m/g, "").trimEnd();
   if (!text) return;
   try {
-    fs.appendFileSync(path.join(app.getPath("userData"), "agentd.log"), `${new Date().toISOString()} ${text}\n`);
+    fs.appendFileSync(path.join(dataHome || app.getPath("userData"), "agentd.log"), `${new Date().toISOString()} ${text}\n`);
   } catch {
     // Logging is best-effort.
   }
@@ -76,9 +78,29 @@ function setState(patch) {
   broadcast();
 }
 
+function migrateLegacyData() {
+  const legacy = app.getPath("userData");
+  dataHome = path.join(os.homedir(), ".agent-remote");
+  sessionsDir = path.join(dataHome, "sessions");
+  tokenPath = path.join(dataHome, "token");
+  fs.mkdirSync(sessionsDir, { recursive: true, mode: 0o700 });
+  try {
+    const oldSessions = path.join(legacy, "sessions");
+    if (fs.existsSync(oldSessions)) {
+      fs.cpSync(oldSessions, sessionsDir, { recursive: true, force: false, errorOnExist: false });
+    }
+    const oldToken = path.join(legacy, "token");
+    if (!fs.existsSync(tokenPath) && fs.existsSync(oldToken)) {
+      fs.copyFileSync(oldToken, tokenPath);
+      fs.chmodSync(tokenPath, 0o600);
+    }
+  } catch (error) {
+    pushLog(`legacy data migration failed: ${error instanceof Error ? error.message : String(error)}`);
+  }
+}
+
 function loadSettings() {
   settingsPath = path.join(app.getPath("userData"), "settings.json");
-  tokenPath = path.join(app.getPath("userData"), "token");
   const defaults = {
     roots: os.homedir(),
     port: 8787,
@@ -288,13 +310,13 @@ async function startHost() {
       ...process.env,
       PATH: toolPath(),
       ELECTRON_RUN_AS_NODE: "1",
-      AGENT_REMOTE_HOME: app.getPath("userData"),
+      AGENT_REMOTE_HOME: dataHome,
       AGENT_REMOTE_TOKEN: token,
       AGENT_REMOTE_PORT: String(port),
       AGENT_REMOTE_BIND: "0.0.0.0",
       AGENT_REMOTE_PUBLIC_URL: `ws://${ip}:${port}/ws`,
       AGENT_REMOTE_ROOTS: settings.roots || os.homedir(),
-      AGENT_REMOTE_SYNC_DIR: path.join(app.getPath("userData"), "sessions"),
+      AGENT_REMOTE_SYNC_DIR: sessionsDir,
     };
     if (byId.dsh?.installed) {
       if (byId.dsh.path.endsWith(".app")) env.DSH_APP_PATH = byId.dsh.path;
@@ -354,7 +376,7 @@ async function startHost() {
       token,
       pairUrl,
       qr,
-      paths: { data: app.getPath("userData") },
+      paths: { data: dataHome, sessions: sessionsDir },
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
@@ -436,6 +458,7 @@ if (!gotLock) {
     }
   });
   app.whenReady().then(async () => {
+    migrateLegacyData();
     loadSettings();
     createWindow();
     await detectTools();

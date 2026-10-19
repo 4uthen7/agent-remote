@@ -1,6 +1,6 @@
 {
   "name": "@agent-remote/agentd",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "private": true,
   "type": "module",
   "description": "Cross-platform host daemon for Agent Remote: drives DSH, Codex and Claude and exposes a mobile-friendly WebSocket API.",

@@ -24,6 +24,8 @@ export type RuntimeAdapter = EventEmitter & {
   resumeSession(sessionId: string, cwd: string): Promise<SessionSummary>;
   /** Rehydrate an archived timeline after a native resume. */
   restoreSession?(sessionId: string, record: SessionRecord): void;
+  /** Read history that already exists in the native tool. */
+  listHistory?(): Promise<SessionRecord[]>;
   prompt(sessionId: string, text: string): Promise<void>;
   cancel(sessionId: string): void;
   setModel(sessionId: string, value: string): Promise<ConfigOption[]>;

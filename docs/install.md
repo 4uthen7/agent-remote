@@ -83,9 +83,10 @@ IPv4 (for example `ws://192.168.1.25:8787/ws`). On an Android emulator running o
 ## Session history and resume
 
 `agentd` saves session history under `AGENT_REMOTE_SYNC_DIR` (default
-`~/.agent-remote/sessions`). After an agentd restart, the app groups the live and saved
-sessions by working directory; tapping an ended session loads its timeline and **再開**
-resumes the runtime.
+`~/.agent-remote/sessions`). On startup it also imports existing Codex/Claude/DSH history,
+so conversations created outside Agent Remote appear in the phone app. Set
+`AGENT_REMOTE_IMPORT_HISTORY=0` to disable that scan. Tapping a saved session loads its
+timeline and **再開** resumes the runtime.
 
 For a lightweight cloud sync, point that variable at a cloud-synced folder on every host
 (iCloud Drive, Dropbox, OneDrive, etc.), or run the bundled encrypted relay:

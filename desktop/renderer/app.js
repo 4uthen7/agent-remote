@@ -54,6 +54,8 @@ function render(next) {
   renderTools();
   renderForm();
   renderLogs();
+  window.hostState = state;
+  window.updateSessionView?.(state);
 }
 
 function renderTools() {

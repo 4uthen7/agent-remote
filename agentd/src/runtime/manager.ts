@@ -2,6 +2,8 @@ import { EventEmitter } from "node:events";
 import type { RuntimeId, SessionRecord, SessionSummary, ConfigOption } from "../types.js";
 import type { RuntimeAdapter, RuntimeSnapshot } from "./types.js";
 import type { SessionStore } from "../session-store.js";
+import { importClaudeHistory, importDshHistory } from "../native-history.js";
+import { log } from "../util.js";
 
 export type RuntimeFactory = () => RuntimeAdapter;
 
@@ -164,6 +166,46 @@ export class RuntimeManager extends EventEmitter {
       this.persist(selected, session.id, true);
     }
     return session;
+  }
+
+  async importNativeHistory(): Promise<number> {
+    if (!this.store) return 0;
+    let imported = 0;
+    const existing = new Set(this.store.list().map((record) => `${record.runtime}:${record.id}`));
+    const live = new Set(
+      [...this.adapters.values()].flatMap((adapter) => adapter.listSessions().map((session) => session.id)),
+    );
+    const accept = (record: SessionRecord): void => {
+      const key = `${record.runtime}:${record.id}`;
+      if (live.has(record.id)) return;
+      const current = this.store!.get(record.runtime, record.id);
+      if (current) {
+        // Upgrade metadata-only imports from older builds when native history
+        // now contains transcript events.
+        if (record.events.length > current.events.length) {
+          this.store!.save({ ...record, status: "idle" }, true);
+          imported += 1;
+        }
+        return;
+      }
+      this.store!.save({ ...record, status: "idle" }, true);
+      existing.add(key);
+      imported += 1;
+    };
+
+    try {
+      const adapter = await this.ensure("codex");
+      for (const record of (await adapter.listHistory?.()) ?? []) accept(record);
+    } catch (error) {
+      log(`native Codex history unavailable: ${error instanceof Error ? error.message : String(error)}`);
+    }
+    for (const record of importClaudeHistory()) accept(record);
+    for (const record of importDshHistory()) accept(record);
+    if (imported > 0) {
+      log(`imported ${imported} native session(s)`);
+      this.emit("history_imported", { count: imported });
+    }
+    return imported;
   }
 
   private adapterFor(sessionId: string): RuntimeAdapter {

@@ -25,6 +25,9 @@ PBKDF2-HMAC-SHA256 hash (120,000 iterations), in iOS Keychain or Android app-pri
 preferences. It does not change the WebSocket token's Keychain/Keystore storage.
 There is no password recovery; uninstalling the app clears the lock and local token.
 
+On startup agentd reads local Codex/Claude/DSH history stores to import conversations.
+That read is local; it is uploaded only when relay/folder sync is configured.
+
 Session archives under `AGENT_REMOTE_SYNC_DIR` contain prompts, tool output and directory
 paths. If that directory is cloud-synced, protect it with the cloud account. Relay sync
 encrypts the archive with AES-256-GCM before upload; the relay stores only ciphertext and
@@ -33,7 +36,7 @@ authenticates clients with `AGENT_REMOTE_SYNC_TOKEN`. The room key
 relay token and the room key can read the shared archive.
 
 The desktop host bundles its own Node runtime and agentd. It stores the bearer token in
-the app user-data directory with mode `0600`. The desktop UI shows the token in the QR;
+`~/.agent-remote/token` with mode `0600`. The desktop UI shows the token in the QR;
 treat the screen and QR as secrets. Unsigned macOS/Windows builds may require an
 explicit first-run confirmation.
 

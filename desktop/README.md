@@ -8,6 +8,8 @@ WebSocket host, and shows the pairing QR. **The target PC does not need Node.js 
 
 - Starts `agentd` on a free port (8787 or the next free one) and shows a QR for the
   existing iOS/Android client.
+- **Sessions tab** with project grouping, imported native history, approvals, model
+  selection, and resume. The desktop app shares `~/.agent-remote/sessions` with the CLI.
 - Detects **DeepSeek Harness, Codex and Claude Code** and passes their paths to agentd.
 - Shows other detected coding CLIs (Cursor, VS Code, Windsurf, Aider, Gemini CLI,
   OpenCode) for inventory; only DSH/Codex/Claude are driven by the current agentd

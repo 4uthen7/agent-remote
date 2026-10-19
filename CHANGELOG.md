@@ -4,6 +4,16 @@ All notable changes are published as Git tags and GitHub Releases.
 The format follows a simple semantic versioning scheme; app and daemon versions can differ
 within one release.
 
+## v1.0.1 — 2026-10-19
+
+- **Native history import**: on startup agentd imports existing Codex threads, Claude
+  Code transcripts, and DSH turn outlines into the archive. The phone app now shows
+  conversations that were created outside Agent Remote.
+- Native imports are local by default; cross-host relay/folder sync remains opt-in.
+- **Desktop 1.0.1**: shared `~/.agent-remote/sessions` archive, native import, and a
+  Sessions tab with project list, history, approvals, model selection and resume.
+- agentd **0.6.1**; iOS **0.4.0** and Android **0.5.0** unchanged.
+
 ## v1.0.0 — 2026-10-19
 
 - **Agent Remote Desktop** for Windows and macOS. Electron + bundled agentd and

@@ -16,13 +16,17 @@
           <div class="brand-sub">Desktop host / DSH · Codex · Claude</div>
         </div>
       </div>
+      <nav class="tabs" aria-label="表示">
+        <button class="tab active" data-view="host">ホスト</button>
+        <button class="tab" data-view="sessions">セッション</button>
+      </nav>
       <div class="top-actions">
         <span class="badge">Node.js 不要</span>
         <span id="status-pill" class="status status-stopped">停止中</span>
       </div>
     </header>
 
-    <main class="layout">
+    <main id="host-view" class="layout">
       <section class="card connect-card">
         <div class="card-head">
           <div>
@@ -152,11 +156,69 @@
       </section>
     </main>
 
+    <main id="sessions-view" class="sessions-layout hidden">
+      <aside class="card session-list-card">
+        <div class="card-head">
+          <div>
+            <h2>プロジェクト</h2>
+            <p class="muted">終了したセッションも履歴から再開できます。</p>
+          </div>
+          <button id="new-session" class="ghost small">新規</button>
+        </div>
+        <div id="new-session-form" class="new-session-form hidden">
+          <input id="new-session-cwd" type="text" placeholder="作業ディレクトリ" />
+          <div class="field-row">
+            <select id="new-session-runtime">
+              <option value="dsh">DSH</option>
+              <option value="codex">Codex</option>
+              <option value="claude">Claude</option>
+            </select>
+            <button id="create-session" class="primary small">開始</button>
+          </div>
+        </div>
+        <div id="session-list" class="session-list"></div>
+      </aside>
+
+      <section class="card chat-card">
+        <div id="chat-empty" class="chat-empty">
+          <div class="chat-empty-icon">&gt;_</div>
+          <h2>セッションを選択</h2>
+          <p class="muted">左のプロジェクトから会話を開くと、過去の履歴を読み込んで続きを送れます。</p>
+        </div>
+        <div id="chat-view" class="chat-view hidden">
+          <header class="chat-head">
+            <button id="chat-back" class="ghost small chat-back">一覧</button>
+            <div class="chat-title-wrap">
+              <div id="chat-title" class="chat-title">—</div>
+              <div id="chat-meta" class="chat-meta">—</div>
+            </div>
+            <select id="chat-model" class="chat-model"></select>
+            <button id="chat-cancel" class="ghost small hidden">停止</button>
+          </header>
+          <div id="archived-banner" class="archived-banner hidden">
+            <div><strong>終了したセッション</strong><span id="archived-text"></span></div>
+            <button id="resume-session" class="primary small">再開</button>
+          </div>
+          <div id="approval-banner" class="approval-banner hidden">
+            <div class="approval-title">承認が必要です</div>
+            <div id="approval-command" class="approval-command"></div>
+            <div id="approval-options" class="approval-options"></div>
+          </div>
+          <div id="chat-timeline" class="chat-timeline"></div>
+          <form id="composer" class="composer">
+            <textarea id="draft" rows="1" placeholder="メッセージ"></textarea>
+            <button id="send" class="primary" type="submit">送信</button>
+          </form>
+        </div>
+      </section>
+    </main>
+
     <footer class="footer">
       <span>Agent Remote Desktop <span id="version">—</span></span>
       <span>プロトコル互換: iOS 0.4.0 / Android 0.5.0</span>
     </footer>
   </div>
   <script src="app.js"></script>
+  <script src="sessions.js"></script>
 </body>
 </html>

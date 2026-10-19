@@ -87,6 +87,12 @@ async function main(): Promise<void> {
     app.server.listen(config.port, config.bind, () => resolve());
   });
 
+  if (process.env.AGENT_REMOTE_IMPORT_HISTORY !== "0") {
+    void manager.importNativeHistory().catch((error: unknown) => {
+      log(`native history import failed: ${error instanceof Error ? error.message : String(error)}`);
+    });
+  }
+
   const pairUrl = `agentremote://pair?url=${encodeURIComponent(config.publicUrl)}&token=${encodeURIComponent(config.token)}`;
 
   log("");
