@@ -10,7 +10,11 @@ const agentd = path.join(repo, "agentd");
 const target = path.join(desktop, "resources", "agentd");
 
 console.log("building agentd...");
-execFileSync("npm", ["run", "build"], { cwd: agentd, stdio: "inherit" });
+execFileSync("npm", ["run", "build"], {
+  cwd: agentd,
+  stdio: "inherit",
+  shell: process.platform === "win32",
+});
 
 rmSync(target, { recursive: true, force: true });
 mkdirSync(target, { recursive: true });
@@ -21,6 +25,7 @@ console.log("installing production dependencies...");
 execFileSync("npm", ["ci", "--omit=dev", "--ignore-scripts"], {
   cwd: target,
   stdio: "inherit",
+  shell: process.platform === "win32",
 });
 if (!existsSync(path.join(target, "node_modules", "ws"))) {
   throw new Error("agentd production dependencies were not installed");
