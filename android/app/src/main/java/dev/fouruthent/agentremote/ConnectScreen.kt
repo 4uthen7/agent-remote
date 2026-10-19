@@ -23,6 +23,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.ContentPaste
 import androidx.compose.material.icons.outlined.HelpOutline
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Shield
 import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material.icons.outlined.VisibilityOff
@@ -58,7 +59,7 @@ import com.journeyapps.barcodescanner.ScanContract
 import com.journeyapps.barcodescanner.ScanOptions
 
 @Composable
-fun ConnectScreen(state: UiState, store: AgentStore, onHelp: () -> Unit) {
+fun ConnectScreen(state: UiState, store: AgentStore, onHelp: () -> Unit, onSettings: () -> Unit) {
     val context = LocalContext.current
     var showToken by remember { mutableStateOf(false) }
     val scanLauncher = rememberLauncherForActivityResult(ScanContract()) { result ->
@@ -83,7 +84,12 @@ fun ConnectScreen(state: UiState, store: AgentStore, onHelp: () -> Unit) {
                 highlight = state.serverUrl.isBlank() || state.token.isBlank(),
             )
             Spacer(Modifier.weight(1f))
-            Text("セットアップガイド", fontSize = 12.sp, color = Palette.Secondary)
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("セットアップガイド", fontSize = 12.sp, color = Palette.Secondary)
+                IconButton(onClick = onSettings) {
+                    Icon(Icons.Outlined.Settings, "設定", tint = Palette.Blue, modifier = Modifier.size(19.dp))
+                }
+            }
         }
         Spacer(Modifier.height(18.dp))
         Text(

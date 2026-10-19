@@ -55,6 +55,7 @@ See [windows.md](windows.md) for native Windows setup and the WSL2 fallback.
 
 | Release | agentd | iOS | Android | Highlights |
 |---|---|---|---|---|
+| v0.5.0 | 0.4.0 | 0.3.0 | 0.4.0 | Face ID / Touch ID / Android biometrics + app-password lock |
 | v0.4.0 | 0.4.0 | 0.2.2 | 0.3.2 | Windows host support, all host/client combinations |
 | v0.3.1 | 0.2.1 | 0.2.1 | 0.3.1 | Android progressive setup guide |
 | v0.3.0 | 0.2.1 | 0.2.1 | 0.3.0 | Native Android client |

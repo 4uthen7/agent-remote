@@ -80,6 +80,16 @@ For a **Windows host**, allow Node.js on Private networks, then use the Windows 
 IPv4 (for example `ws://192.168.1.25:8787/ws`). On an Android emulator running on Windows,
 `ws://10.0.2.2:8787/ws` still points at the Windows host.
 
+## App lock
+
+Both clients support an optional app lock in **Settings → App lock**:
+
+- iOS: Face ID / Touch ID / Optic ID, or the app-specific password.
+- Android: fingerprint/face, or the app-specific password.
+- Locks on cold launch and when returning from the background.
+- The password is at least 6 characters. There is no recovery; reinstalling clears it.
+- The password is stored as a salted PBKDF2-HMAC-SHA256 hash, not plaintext.
+
 ## Runtime logins
 
 The app can launch DeepSeek Harness, Codex, or Claude. Each runtime uses its own login:

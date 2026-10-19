@@ -3,6 +3,7 @@ import SwiftUI
 struct CleanSettingsView: View {
     @EnvironmentObject private var store: AppStore
     @Environment(\.dismiss) private var dismiss
+    @ObservedObject private var appLock = AppLock.shared
 
     private var urlBinding: Binding<String> {
         Binding(get: { store.serverURL }, set: { store.serverURL = $0 })
@@ -68,6 +69,11 @@ struct CleanSettingsView: View {
                 }
 
                 Section {
+                    NavigationLink {
+                        AppLockSettingsView(lock: appLock)
+                    } label: {
+                        Label("アプリロック", systemImage: "lock.shield")
+                    }
                     Text("トークンは iOS の Keychain に保存されます。LAN 外から使う場合は、PC と iPhone の両方を Tailscale に接続し、tailnet の URL を使ってください。")
                         .font(.caption)
                         .foregroundStyle(.secondary)

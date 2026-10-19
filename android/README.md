@@ -11,6 +11,7 @@ blue accent, chat timeline, model menu and one-shot approval cards.
 - Streaming assistant text, thinking, tool calls and command output
 - One-shot approvals with command, working directory and justification
 - Per-runtime model menu, cancel, context usage ring
+- App lock with Android fingerprint/face or app-specific password, on launch/background
 - QR pairing and manual URL + token
 - **Setup guide** (? button, top-left) with advice that changes with progress
 - Token stored with Android Keystore (`EncryptedSharedPreferences`)

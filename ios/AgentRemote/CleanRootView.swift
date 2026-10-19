@@ -2,9 +2,12 @@ import SwiftUI
 
 struct CleanRootView: View {
     @EnvironmentObject private var store: AppStore
+    @ObservedObject private var appLock = AppLock.shared
+    @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
-        NavigationStack(path: $store.path) {
+        ZStack {
+            NavigationStack(path: $store.path) {
             Group {
                 if store.isConnected {
                     CleanSessionsView()
@@ -12,11 +15,26 @@ struct CleanRootView: View {
                     CleanConnectView()
                 }
             }
-            .navigationDestination(for: String.self) { sessionId in
-                CleanTimelineView(sessionId: sessionId)
+                .navigationDestination(for: String.self) { sessionId in
+                    CleanTimelineView(sessionId: sessionId)
+                }
+            }
+
+            if appLock.isLocked {
+                AppLockView(lock: appLock)
+                    .transition(.opacity)
+                    .zIndex(1)
             }
         }
-        .sheet(item: $store.activeApproval) { approval in
+        .onChange(of: scenePhase) { _, newPhase in
+            if newPhase == .background {
+                appLock.lockIfNeeded()
+            }
+        }
+        .sheet(item: Binding(
+            get: { appLock.isLocked ? nil : store.activeApproval },
+            set: { store.activeApproval = $0 }
+        )) { approval in
             CleanApprovalSheet(approval: approval)
                 .environmentObject(store)
         }

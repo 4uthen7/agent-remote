@@ -2,10 +2,10 @@ package dev.fouruthent.agentremote
 
 import android.content.Intent
 import android.os.Bundle
-import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
+import androidx.fragment.app.FragmentActivity
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -20,13 +20,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
-class MainActivity : ComponentActivity() {
+class MainActivity : FragmentActivity() {
     private val store: AgentStore by viewModels()
+    private val appLock: AppLock get() = (application as AgentRemoteApplication).appLock
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        setContent { AgentRemoteApp(store) }
+        setContent { AgentRemoteApp(store, appLock) }
         handleIntent(intent)
     }
 
@@ -43,36 +44,41 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun AgentRemoteApp(store: AgentStore) {
+fun AgentRemoteApp(store: AgentStore, appLock: AppLock) {
     val state by store.state.collectAsStateWithLifecycle()
+    val lockState by appLock.state.collectAsStateWithLifecycle()
     var showGuide by rememberSaveable { mutableStateOf(false) }
     AgentTheme {
         Surface(
             modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background),
             color = MaterialTheme.colorScheme.background,
         ) {
-            Box(Modifier.fillMaxSize().systemBarsPadding()) {
-                when (state.route) {
-                    Route.Connect -> ConnectScreen(state, store) { showGuide = true }
-                    Route.Sessions -> SessionsScreen(state, store) { showGuide = true }
-                    Route.NewSession -> NewSessionScreen(state, store)
-                    Route.Timeline -> TimelineScreen(state, store) { showGuide = true }
-                    Route.Settings -> SettingsScreen(state, store)
-                }
-                if (showGuide) {
-                    GuideSheet(
-                        state = state,
-                        onDismiss = { showGuide = false },
-                        onAction = { action ->
-                            when (action) {
-                                GuideAction.OpenConnect -> store.openConnect()
-                                GuideAction.Connect -> store.connect()
-                                GuideAction.OpenNewSession -> store.openNewSession()
-                                GuideAction.None -> Unit
-                            }
-                            showGuide = false
-                        },
-                    )
+            if (lockState.locked) {
+                AppLockScreen(appLock, lockState)
+            } else {
+                Box(Modifier.fillMaxSize().systemBarsPadding()) {
+                    when (state.route) {
+                        Route.Connect -> ConnectScreen(state, store, onHelp = { showGuide = true }, onSettings = { store.openSettings() })
+                        Route.Sessions -> SessionsScreen(state, store) { showGuide = true }
+                        Route.NewSession -> NewSessionScreen(state, store)
+                        Route.Timeline -> TimelineScreen(state, store) { showGuide = true }
+                        Route.Settings -> SettingsScreen(state, store, appLock)
+                    }
+                    if (showGuide) {
+                        GuideSheet(
+                            state = state,
+                            onDismiss = { showGuide = false },
+                            onAction = { action ->
+                                when (action) {
+                                    GuideAction.OpenConnect -> store.openConnect()
+                                    GuideAction.Connect -> store.connect()
+                                    GuideAction.OpenNewSession -> store.openNewSession()
+                                    GuideAction.None -> Unit
+                                }
+                                showGuide = false
+                            },
+                        )
+                    }
                 }
             }
         }

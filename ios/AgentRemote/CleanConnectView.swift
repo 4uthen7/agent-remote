@@ -3,8 +3,10 @@ import UIKit
 
 struct CleanConnectView: View {
     @EnvironmentObject private var store: AppStore
+    @ObservedObject private var appLock = AppLock.shared
     @FocusState private var focusedField: Field?
     @State private var showingScanner = false
+    @State private var showingSettings = false
     @State private var showToken = false
 
     private enum Field {
@@ -153,8 +155,28 @@ struct CleanConnectView: View {
         .background(Color(uiColor: .systemGroupedBackground))
         .navigationTitle("Agent Remote")
         .navigationBarTitleDisplayMode(.large)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    showingSettings = true
+                } label: {
+                    Image(systemName: "gearshape")
+                }
+                .accessibilityLabel("設定")
+            }
+        }
         .sheet(isPresented: $showingScanner) {
             scannerSheet
+        }
+        .sheet(isPresented: $showingSettings) {
+            CleanSettingsView()
+                .environmentObject(store)
+        }
+        .onChange(of: appLock.isLocked) { _, locked in
+            if locked {
+                showingScanner = false
+                showingSettings = false
+            }
         }
     }
 

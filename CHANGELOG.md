@@ -4,6 +4,16 @@ All notable changes are published as Git tags and GitHub Releases.
 The format follows a simple semantic versioning scheme; app and daemon versions can differ
 within one release.
 
+## v0.5.0 — 2026-10-19
+
+- **App lock on both clients**: Face ID / Touch ID / Optic ID (iOS), fingerprint/face
+  (Android), with an app-specific password fallback.
+- Locks automatically on launch and when returning from the background; enable it in
+  **Settings → App lock**.
+- Passwords are stored as salted PBKDF2-HMAC-SHA256 hashes (120,000 iterations);
+  iOS uses Keychain, Android stores only the hash in app-private preferences.
+- iOS **0.3.0**, Android **0.4.0**, agentd **0.4.0** (unchanged).
+
 ## v0.4.0 — 2026-10-19
 
 - **Windows host support**: agentd now runs natively on Windows 10 1809+/11 with

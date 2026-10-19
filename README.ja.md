@@ -31,6 +31,10 @@ Android は Jetpack Compose で実装しています。以前のサイバー調�
 |---|---|---|
 | ![Android sessions](docs/screenshots/android-sessions.png) | ![Android setup guide](docs/screenshots/android-guide.png) | ![Android approval](docs/screenshots/android-approval.png) |
 
+| Android アプリロック | Android アプリロック設定 |
+|---|---|
+| ![Android app lock](docs/screenshots/android-lock.png) | ![Android app-lock settings](docs/screenshots/android-lock-settings.png) |
+
 ## 機能
 
 - **3つのランタイム** — **DeepSeek Harness** / **OpenAI Codex** / **Claude Code** をセッションごとに選択
@@ -41,6 +45,7 @@ Android は Jetpack Compose で実装しています。以前のサイバー調�
 - **ネイティブクライアント** — iOS は SwiftUI、Android は Jetpack Compose。grouped list、Large Title、システムのライト/ダーク、日本語ラベル
 - **デバッグ可能な Android APK** — debug 署名・debuggable。`adb install` で導入でき、ストア署名は不要
 - **進行に合わせたセットアップガイド** — 左上の `?` ボタンがホストURL・QR・次の手順を案内。接続やセッションの進捗に応じて内容が変わります
+- **アプリロック** — iOSはFace ID / Touch ID / Optic ID、Androidは指紋・顔認証、さらにアプリ専用パスワードに対応。起動時とバックグラウンド復帰時にロックし、**設定 → アプリロック** から有効化
 - **アプリアイコン** — 接続画面の黒いターミナルマークを同梱
 - **安全なペアリング** — QR コードまたは URL + トークン。トークンは iOS の Keychain / Android の Keystore 暗号化領域に保存
 - **LAN / Tailscale** — Mac 側に inbound ポートを開けずに、tailnet 経由で外部から接続
@@ -207,6 +212,7 @@ AGENT_REMOTE_PUBLIC_URL="ws://$(tailscale ip -4):8787/ws" npm start
 
 - `agentd` はすべての WebSocket 接続を bearer token で認証します
 - トークンは iOS Keychain（`AfterFirstUnlockThisDeviceOnly`）または Android Keystore 暗号化領域に保存されます
+- アプリロックはソルト付き PBKDF2-HMAC-SHA256（120,000回）のパスワードハッシュのみを保存します（iOSはKeychain、Androidはアプリ専用領域）。UIのロックであり、WebSocketトークンはKeychain/Keystoreで保護されます
 - 承認は **一度だけ** 有効で、実際に要求したツール呼び出し・コマンドに紐づきます。
   `danger-full-access` は明示表示され、自動承認されません
 - `agentd` はデフォルトで `0.0.0.0:8787` をリッスンします。インターネットに直接公開せず、
@@ -345,6 +351,7 @@ node test/smoke.mjs
 - [x] アプリアイコン（黒いターミナルマーク）
 - [x] Windows ホスト対応（ネイティブ + WSL2 フォールバック）、全ホスト/スマホ組み合わせ
 - [x] クロスプラットフォーム CI（Windows/macOS/Linux の agentd、Android APK、iOS シミュレータ）
+- [x] Face ID / Touch ID / Optic ID、Android生体認証、アプリパスワード
 - [ ] アプリ層 E2E + relay
 - [ ] APNs プッシュ通知
 - [ ] App Store 向け hardening

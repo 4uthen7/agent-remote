@@ -29,6 +29,10 @@ repository.
 |---|---|---|
 | ![Android sessions](docs/screenshots/android-sessions.png) | ![Android setup guide](docs/screenshots/android-guide.png) | ![Android approval](docs/screenshots/android-approval.png) |
 
+| Android app lock | Android app-lock settings |
+|---|---|
+| ![Android app lock](docs/screenshots/android-lock.png) | ![Android app-lock settings](docs/screenshots/android-lock-settings.png) |
+
 ## Features
 
 - **Three runtimes** — choose **DeepSeek Harness**, **OpenAI Codex**, or **Claude Code**
@@ -44,6 +48,9 @@ repository.
   inspection, with no store signing requirement.
 - **Progressive setup guide** — the `?` button at the top-left explains the host URL,
   QR pairing and each next step; its advice advances with connection/session progress.
+- **App lock** — Face ID / Touch ID / Optic ID on iOS, fingerprint or face on Android,
+  plus an app-specific password fallback. Locks on launch and when returning from the
+  background; enable it in **Settings → App lock**.
 - **App icon** — the black terminal mark from the connect screen, bundled with the app.
 - **Secure pairing** — QR code or URL + bearer token; the token is stored in the iOS
   Keychain or Android Keystore-encrypted preferences.
@@ -220,6 +227,9 @@ not logged in, the session shows that runtime's error instead of failing the dae
 - `agentd` authenticates every WebSocket connection with a bearer token.
 - The token is stored in the iOS Keychain (`AfterFirstUnlockThisDeviceOnly`) or
   Android Keystore-encrypted preferences.
+- The optional app lock stores only a salted PBKDF2-HMAC-SHA256 password hash
+  (120,000 iterations): Keychain on iOS, app-private preferences on Android. It is a
+  UI gate; the WebSocket token remains Keychain/Keystore-protected.
 - Approvals are **one-shot** and correlated to the exact tool call and command that
   requested them. `danger-full-access` is shown explicitly and never auto-approved.
 - The daemon binds `0.0.0.0:8787` by default so a phone on the LAN can reach it. Do not
@@ -366,6 +376,7 @@ approves one command that writes a temporary file.
 - [x] App icon (black terminal mark)
 - [x] Windows host support (native + WSL2 fallback), all host/client combinations
 - [x] Cross-platform CI (agentd on Windows/macOS/Linux, Android APK, iOS simulator build)
+- [x] Face ID / Touch ID / Optic ID, Android biometrics, app-password fallback
 - [ ] Application-level E2E + relay
 - [ ] APNs push notifications
 - [ ] App Store hardening

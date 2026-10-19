@@ -2,6 +2,7 @@ import SwiftUI
 
 struct CleanSessionsView: View {
     @EnvironmentObject private var store: AppStore
+    @ObservedObject private var appLock = AppLock.shared
     @State private var showingNewSession = false
     @State private var showingSettings = false
 
@@ -80,6 +81,12 @@ struct CleanSessionsView: View {
         .onAppear {
             if store.sessions.isEmpty {
                 store.refreshSessions()
+            }
+        }
+        .onChange(of: appLock.isLocked) { _, locked in
+            if locked {
+                showingNewSession = false
+                showingSettings = false
             }
         }
     }

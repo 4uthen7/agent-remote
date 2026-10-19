@@ -19,6 +19,12 @@ On Windows, allow agentd only on **Private** networks and keep the bearer token 
 `%USERPROFILE%\.agent-remote\token`. Use Tailscale for off-LAN access instead of exposing
 TCP 8787 to the internet.
 
+The optional app lock gates the UI on launch and after backgrounding. It accepts device
+biometrics or an app-specific password; the password is stored only as a salted
+PBKDF2-HMAC-SHA256 hash (120,000 iterations), in iOS Keychain or Android app-private
+preferences. It does not change the WebSocket token's Keychain/Keystore storage.
+There is no password recovery; uninstalling the app clears the lock and local token.
+
 The Android client is distributed as a **debug build** for sideloading and inspection.
 It stores the bearer token with Android Keystore-encrypted preferences and permits
 cleartext `ws://` for LAN/Tailscale development. Do not treat the debug APK as a
