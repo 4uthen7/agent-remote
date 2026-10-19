@@ -38,7 +38,7 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 ```
 
 The APK is a **debug** build, so it is debuggable and does not need store signing.
-For an emulator, the host Mac is reachable at `ws://10.0.2.2:8787/ws`; on a phone use
+For an emulator, the host PC (macOS or Windows) is reachable at `ws://10.0.2.2:8787/ws`; on a phone use
 the LAN or Tailscale address printed by `agentd`.
 
 ## Pairing and host URL
@@ -50,12 +50,13 @@ If you enter the URL manually, use the `WebSocket:` line printed by `agentd`:
 
 | Situation | Host URL |
 |---|---|
-| Phone on the same Wi-Fi | `ws://<Mac LAN IP>:8787/ws` (e.g. `ws://192.168.1.10:8787/ws`) |
+| Phone on the same Wi-Fi | `ws://<host LAN IP>:8787/ws` (e.g. `ws://192.168.1.10:8787/ws`) |
 | Tailscale | `ws://<tailscale IP>:8787/ws` |
 | Android emulator | `ws://10.0.2.2:8787/ws` |
 
 Do **not** use `127.0.0.1` or `localhost` on a phone: that points at the phone itself.
-The token is the `Token:` line, or `cat ~/.agent-remote/token` on the Mac.
+The token is the `Token:` line, or `~/.agent-remote/token` on the host
+(macOS/Linux: `cat ~/.agent-remote/token`; Windows: `Get-Content $HOME\.agent-remote\token`).
 
 The `?` button at the top-left opens a setup guide. Its advice follows your progress:
 start agentd → scan QR / enter host → enter token → connect → create a session →

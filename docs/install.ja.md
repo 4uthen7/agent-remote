@@ -1,5 +1,11 @@
 # iPhone へのインストール
 
+## ホストOS
+
+agentd は macOS / Windows / Linux で動作し、iPhone / Android アプリはホストOSに依存しません。
+このページは iOS アプリとペアリングの手順です。Windows は
+[windows.md](windows.md)（Node、ファイアウォール、`dsh`/Codex/Claude、WSL2）を参照してください。
+
 ## IPA をビルド
 
 ```bash
@@ -61,13 +67,17 @@ Android のホストURL:
 
 | 状況 | URL |
 |---|---|
-| 実機（同じWi-Fi） | `ws://<MacのLAN IP>:8787/ws` |
+| 実機（同じWi-Fi） | `ws://<ホストのLAN IP>:8787/ws` |
 | Tailscale | `ws://<tailscale IP>:8787/ws` |
 | Androidエミュレータ | `ws://10.0.2.2:8787/ws` |
 
 スマートフォンで `127.0.0.1` / `localhost` は使えません。一番簡単なのは agentd の
 ターミナルに出るQRをスキャンする方法です。左上の `?` ボタンのガイドは、進捗に
 合わせて案内内容が変わります。
+
+**Windows ホスト**の場合は Node.js をプライベートネットワークで許可し、Windows の
+Wi-Fi IPv4（例 `ws://192.168.1.25:8787/ws`）を使います。Windows 上の Android
+エミュレータでも `ws://10.0.2.2:8787/ws` は Windows ホストを指します。
 
 ## ランタイムのログイン
 

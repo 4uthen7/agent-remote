@@ -31,7 +31,7 @@ export interface AgentConfig {
   claudeModel: string;
 }
 
-const VERSION = "0.2.1";
+const VERSION = "0.4.0";
 
 function ensureDir(dir: string): void {
   mkdirSync(dir, { recursive: true, mode: 0o700 });
@@ -60,8 +60,12 @@ function assertTokenPart(value: string, name: string): string {
 
 function which(command: string): string | undefined {
   try {
-    const output = execFileSync("which", [command], { encoding: "utf8" }).trim();
-    return output || undefined;
+    const finder = process.platform === "win32" ? "where" : "which";
+    const output = execFileSync(finder, [command], {
+      encoding: "utf8",
+      windowsHide: true,
+    }).trim();
+    return output.split(/\r?\n/).map((line) => line.trim()).find(Boolean);
   } catch {
     return undefined;
   }
@@ -88,28 +92,31 @@ export function resolveDshRuntime(): DshRuntime {
     };
   }
 
-  const appPath = process.env.DSH_APP_PATH?.trim() || "/Applications/DeepSeek Harness.app";
-  const electron = path.join(appPath, "Contents/MacOS/DeepSeek Harness");
-  const asar = path.join(appPath, "Contents/Resources/app.asar");
-  const binJs = path.join(
-    appPath,
-    "Contents/Resources/app.asar/dsh/node_modules/@deepseek-ai/dsh/lib/bin.js",
-  );
-  // `binJs` lives inside the asar archive, so it is not visible to a plain
-  // `existsSync` here. Electron (ELECTRON_RUN_AS_NODE=1) resolves it at spawn
-  // time; only the archive itself needs to exist on disk.
-  if (existsSync(electron) && existsSync(asar)) {
-    return {
-      command: electron,
-      argsPrefix: [binJs],
-      env: { ELECTRON_RUN_AS_NODE: "1" },
-      description: `${appPath} (Electron as Node)`,
-    };
+  if (process.platform === "darwin") {
+    const appPath = process.env.DSH_APP_PATH?.trim() || "/Applications/DeepSeek Harness.app";
+    const electron = path.join(appPath, "Contents/MacOS/DeepSeek Harness");
+    const asar = path.join(appPath, "Contents/Resources/app.asar");
+    const binJs = path.join(
+      appPath,
+      "Contents/Resources/app.asar/dsh/node_modules/@deepseek-ai/dsh/lib/bin.js",
+    );
+    // `binJs` lives inside the asar archive, so it is not visible to a plain
+    // `existsSync` here. Electron (ELECTRON_RUN_AS_NODE=1) resolves it at spawn
+    // time; only the archive itself needs to exist on disk.
+    if (existsSync(electron) && existsSync(asar)) {
+      return {
+        command: electron,
+        argsPrefix: [binJs],
+        env: { ELECTRON_RUN_AS_NODE: "1" },
+        description: `${appPath} (Electron as Node)`,
+      };
+    }
   }
 
-  throw new Error(
-    "DeepSeek Harness CLI not found. Install DSH, put `dsh` on PATH, or set DSH_BIN / DSH_APP_PATH.",
-  );
+  const platformHint = process.platform === "win32"
+    ? "Install the DSH CLI on Windows (npm install -g @deepseek-ai/dsh) and put dsh on PATH, or set DSH_BIN. You can still use Codex or Claude without DSH."
+    : "Install DSH, put dsh on PATH, or set DSH_BIN / DSH_APP_PATH.";
+  throw new Error(`DeepSeek Harness CLI not found. ${platformHint}`);
 }
 
 export function writeDshPatch(patchPath: string, provider: string, model: string): void {

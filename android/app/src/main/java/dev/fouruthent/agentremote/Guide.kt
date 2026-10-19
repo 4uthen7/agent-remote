@@ -87,7 +87,7 @@ fun guideFor(state: UiState): GuideContent {
 
     val steps = listOf(
         GuideStep(
-            "Macでagentdを起動",
+            "PCでagentdを起動",
             "ターミナルに接続先とQRが出ます",
             hasUrl || hasToken || connected,
             stepNumber == 1,
@@ -174,7 +174,7 @@ fun guideFor(state: UiState): GuideContent {
             title = "接続できました。次はセッションを作成",
             message = "右上の鉛筆ボタンから新しいセッションを作り、DeepSeek Harness / Codex / Claude Code を選びます。",
             bullets = listOf(
-                "作業ディレクトリはMac上のパス（例: ~/Documents/project）",
+                "作業ディレクトリはPC上のパス（例: ~/Documents/project / C:\\work\\project）",
                 "ランタイムごとにログインが必要です",
                 "作成すると自動でタイムラインが開きます",
             ),
@@ -206,11 +206,11 @@ fun guideFor(state: UiState): GuideContent {
             title = "接続しています…",
             message = "agentdに接続中です。数秒待っても変わらない場合は、URLとトークンを確認してください。",
             bullets = listOf(
-                "Mac側でagentdが起動しているか",
+                "PC側でagentdが起動しているか",
                 "同じWi-Fi / Tailscaleに入っているか",
                 "URLが ws://IP:8787/ws の形式か",
             ),
-            code = "curl http://<MacのIP>:8787/health",
+            code = "curl http://<PCのIP>:8787/health",
             action = GuideAction.None,
             actionLabel = null,
             steps = steps,
@@ -222,12 +222,12 @@ fun guideFor(state: UiState): GuideContent {
             title = "agentdに接続できませんでした",
             message = "ホストURL・トークン・ネットワークを確認してください。",
             bullets = listOf(
-                "MacとAndroidが同じWi-Fi、または両方Tailscaleに入っているか",
+                "PCとAndroidが同じWi-Fi、または両方Tailscaleに入っているか",
                 "Androidから 127.0.0.1 は使えません（端末自身を指します）",
                 "URLはagentdの WebSocket: 行をそのまま貼り付け",
-                "Macのファイアウォールで8787が許可されているか",
+                "PCのファイアウォールで8787が許可されているか",
             ),
-            code = "curl http://<MacのIP>:8787/health",
+            code = "curl http://<PCのIP>:8787/health",
             action = GuideAction.OpenConnect,
             actionLabel = "接続画面に戻る",
             steps = steps,
@@ -236,11 +236,11 @@ fun guideFor(state: UiState): GuideContent {
             stage = "はじめに",
             stepNumber = 1,
             totalSteps = 5,
-            title = "まずMacでagentdを起動します",
-            message = "Macのターミナルでagentdを起動すると、接続先URL・トークン・QRコードが表示されます。",
+            title = "まずPC（Mac / Windows）でagentdを起動します",
+            message = "PCのターミナルでagentdを起動すると、接続先URL・トークン・QRコードが表示されます。",
             bullets = listOf(
                 "ターミナルの WebSocket: の行がホストURLです",
-                "実機はMacと同じWi-Fi、またはTailscaleで接続",
+                "実機はPCと同じWi-Fi、またはTailscaleで接続",
                 "Androidの 127.0.0.1 はAndroid自身なので使いません",
             ),
             code = "cd agentd\nnpm start",
@@ -256,10 +256,10 @@ fun guideFor(state: UiState): GuideContent {
             message = "agentdのターミナルに出ているQRコードを読み取ると、ホストURLとトークンが自動で入ります。",
             bullets = listOf(
                 "QRが使えない場合: agentdの Token: の行をトークン欄に貼り付け",
-                "トークンは cat ~/.agent-remote/token でも確認できます",
+                "トークンは ~/.agent-remote/token の内容（Windowsは %USERPROFILE%\\.agent-remote\\token）",
                 "ホストURLは ws://...:8787/ws の形式です",
             ),
-            code = "cat ~/.agent-remote/token",
+            code = "# macOS / Linux\ncat ~/.agent-remote/token\n\n# Windows PowerShell\nGet-Content \$HOME\\.agent-remote\\token",
             action = GuideAction.OpenConnect,
             actionLabel = "接続画面に戻る",
             steps = steps,
@@ -452,7 +452,7 @@ fun GuideSheet(
             }
             Spacer(Modifier.height(8.dp))
             Text(
-                "QRは agentd のターミナルに表示されます。うまくいかない場合は agentd のログと、Mac・Androidのネットワークを確認してください。",
+                "QRは agentd のターミナルに表示されます。うまくいかない場合は agentd のログと、PC・Androidのネットワークを確認してください。",
                 fontSize = 11.sp,
                 lineHeight = 16.sp,
                 color = Palette.Secondary,

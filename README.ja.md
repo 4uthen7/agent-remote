@@ -6,6 +6,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/iOS-17%2B-black)](https://developer.apple.com/ios/)
 [![Platform](https://img.shields.io/badge/Android-8%2B-3DDC84)](https://developer.android.com/)
+[![Hosts](https://img.shields.io/badge/hosts-macOS%20%7C%20Windows%20%7C%20Linux-lightgrey)](docs/platforms.md)
 [![Node](https://img.shields.io/badge/Node-22%2B-339933)](https://nodejs.org/)
 
 Mac 上で動くコーディングエージェントを、**iPhone / Android** から操作するための
@@ -67,27 +68,60 @@ upstream プロセスとして維持します。iPhone / Android アプリは各
 
 メッセージフローと承認の相関処理は [docs/architecture.md](docs/architecture.md) を参照してください。
 
+## ホストOSとスマホの組み合わせ
+
+ホスト側 daemon は macOS 専用ではなく、スマホアプリも特定のホストOSに依存しません。
+
+| ホスト | iPhone | Android |
+|---|---|---|
+| macOS 13+ | ✅ | ✅ |
+| Windows 10 1809+ / 11 | ✅ | ✅ |
+| Linux | ✅ | ✅ |
+
+QR・URL + トークン・承認・モデルメニューはどの組み合わせでも同じです。詳細は
+[docs/platforms.md](docs/platforms.md)、Windows の手順は
+[docs/windows.md](docs/windows.md)（ファイアウォール、`dsh`/Codex/Claude、WSL2 フォールバック）
+を参照してください。Windows は CI の `windows-latest` で agentd の起動・health まで検証します。
+
 ## 必要なもの
 
-- macOS で、少なくとも1つのランタイムが利用可能:
+- macOS 13+ / Windows 10 1809+ / Linux で、少なくとも1つのランタイムが利用可能:
   - [DeepSeek Harness](https://github.com/deepseek-ai) がインストール・ログイン済み
   - **Codex CLI** がログイン済み（`codex login status` が ChatGPT と表示）
   - **Claude Code** がログイン済み（`claude auth status`）または `ANTHROPIC_API_KEY`
-- Node.js 22 以上（開発は Node 24）
+- Node.js 22.19 以上（Node 24 推奨）
 - Xcode 26 以上と [XcodeGen](https://github.com/yonaskolb/XcodeGen)
-- Mac と同じ LAN、または両方を Tailscale に接続した iPhone / Android 8 以上
+- ホストと同じ LAN、または両方を Tailscale に接続した iPhone / Android 8 以上
 - ソースから Android をビルドする場合のみ JDK 17 + Android SDK 35
 
 DSH `0.2.1-rc.2`、Codex CLI `0.144.6`、Claude Code `2.1.216` / macOS で動作確認しています。
+Windows は CI（`windows-latest`）で型チェックと agentd 起動を検証しています。各ランタイムの
+CLI は Windows ホスト側でインストール・ログインしてから使ってください。
 Claude はログインまたは API キーが必要で、未認証の場合はアプリにエラーが表示されます。
+
+## バージョン
+
+各リリースは Git タグと GitHub Release で管理しています。1つのリリース内でアプリと
+daemon のバージョンが異なる場合があります。履歴は [CHANGELOG.md](CHANGELOG.md)、
+対応表は [docs/platforms.md](docs/platforms.md) を参照してください。
 
 ## クイックスタート
 
 ### 1. agentd を起動
 
+macOS / Linux:
+
 ```bash
 cd agentd
 npm install
+npm start
+```
+
+Windows（PowerShell）は [docs/windows.md](docs/windows.md) を参照:
+
+```powershell
+cd agentd
+npm ci
 npm start
 ```
 
@@ -240,6 +274,8 @@ node test/smoke.mjs
 - [x] ネイティブ Android クライアント（Jetpack Compose）、QR ペアリング、Keystore、debug APK
 - [x] 日本語クリーン UI、署名なし IPA
 - [x] アプリアイコン（黒いターミナルマーク）
+- [x] Windows ホスト対応（ネイティブ + WSL2 フォールバック）、全ホスト/スマホ組み合わせ
+- [x] クロスプラットフォーム CI（Windows/macOS/Linux の agentd、Android APK、iOS シミュレータ）
 - [ ] アプリ層 E2E + relay
 - [ ] APNs プッシュ通知
 - [ ] App Store 向け hardening
@@ -247,13 +283,14 @@ node test/smoke.mjs
 ## リポジトリ構成
 
 ```
-agentd/                 Node デーモン（WebSocket + DSH / Codex / Claude）
+agentd/                 Node デーモン（WebSocket + DSH / Codex / Claude、macOS/Windows/Linux）
 ios/                    SwiftUI アプリ（XcodeGen）
   AgentRemote/          クリーン UI + 共有クライアント
 android/                Jetpack Compose アプリ（Gradle）
   app/                  ネイティブ Android クライアント
 scripts/build-ipa.sh    署名なし実機 IPA
-docs/                   インストール、構成、スクリーンショット
+docs/                   インストール、構成、プラットフォーム、Windows、スクリーンショット
+CHANGELOG.md            バージョン履歴
 ```
 
 ## ライセンス

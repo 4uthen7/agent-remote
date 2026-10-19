@@ -1,4 +1,5 @@
-import { spawn, type ChildProcess } from "node:child_process";
+import type { ChildProcess } from "node:child_process";
+import spawn from "cross-spawn";
 import { EventEmitter } from "node:events";
 import readline from "node:readline";
 
@@ -38,7 +39,8 @@ export class AcpClient extends EventEmitter {
       env: options.env,
       cwd: options.cwd,
       stdio: ["pipe", "pipe", "pipe"],
-    });
+      windowsHide: true,
+    }) as ChildProcess;
 
     if (!this.proc.stdout || !this.proc.stdin) {
       throw new Error("Failed to open ACP stdio pipes");

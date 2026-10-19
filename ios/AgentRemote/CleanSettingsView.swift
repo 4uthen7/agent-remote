@@ -68,7 +68,7 @@ struct CleanSettingsView: View {
                 }
 
                 Section {
-                    Text("トークンは iOS の Keychain に保存されます。LAN 外から使う場合は、Mac と iPhone の両方を Tailscale に接続し、tailnet の URL を使ってください。")
+                    Text("トークンは iOS の Keychain に保存されます。LAN 外から使う場合は、PC と iPhone の両方を Tailscale に接続し、tailnet の URL を使ってください。")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 } header: {

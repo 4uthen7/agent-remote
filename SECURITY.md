@@ -12,8 +12,12 @@ include a live bearer token or private source code in the report.
 ## Threat model
 
 `agentd` is a remote-control bridge for coding agents (DeepSeek Harness, Codex, or
-Claude) running with your macOS user's permissions. It is **not** a sandbox and it is
-not hardened to be exposed directly to the public internet.
+Claude) running with your host user's permissions on macOS, Windows, or Linux. It is
+**not** a sandbox and it is not hardened to be exposed directly to the public internet.
+
+On Windows, allow agentd only on **Private** networks and keep the bearer token in
+`%USERPROFILE%\.agent-remote\token`. Use Tailscale for off-LAN access instead of exposing
+TCP 8787 to the internet.
 
 The Android client is distributed as a **debug build** for sideloading and inspection.
 It stores the bearer token with Android Keystore-encrypted preferences and permits

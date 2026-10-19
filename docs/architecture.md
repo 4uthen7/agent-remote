@@ -6,7 +6,7 @@
 |---|---|---|
 | iOS app | `ios/AgentRemote` | Pairing, session list, timeline, approvals, model picker |
 | Android app | `android/app` | Jetpack Compose client with the same protocol and UI |
-| `agentd` | `agentd/src` | WebSocket API, token auth, runtime/session routing |
+| `agentd` | `agentd/src` | WebSocket API, token auth, runtime/session routing; runs on macOS, Windows and Linux |
 | Runtime manager | `agentd/src/runtime` | Lazy adapter startup, session routing, normalized events |
 | DSH ACP adapter | `agentd/src/acp` | JSON-RPC over stdio, permission requests, tool-call correlation |
 | Codex adapter | `agentd/src/codex` | `codex app-server` JSON lines, thread/turn, approvals |
@@ -111,7 +111,8 @@ session shows a login error without stopping the daemon.
 
 ## Security boundaries
 
-- The daemon is not a sandbox. It runs with the macOS user's permissions.
+- The daemon is not a sandbox. It runs with the host user's permissions on macOS,
+  Windows, or Linux.
 - The bearer token is the only application-level authentication.
 - The transport is `ws://` on a trusted LAN or Tailscale. There is no application-layer
   E2E envelope or relay yet.
@@ -119,6 +120,15 @@ session shows a login error without stopping the daemon.
 - The iOS app stores the token in Keychain; the Android app stores it in
   Keystore-encrypted preferences; the daemon stores it in `~/.agent-remote/token`
   with user-only permissions.
+
+## Cross-platform host
+
+`agentd` uses Node's path/home APIs with Windows normalization (case-insensitive root
+checks, `~\` and `%VAR%` expansion), `where`/`which` discovery, and `cross-spawn` so
+npm-installed `.cmd` shims (Codex, DSH) launch correctly. LAN address selection prefers
+Wi-Fi/Ethernet over WSL/Hyper-V/VirtualBox adapters and prints every candidate URL at
+startup. Codex's Windows sandbox is allowed to fall back to the CLI's platform default
+when a release rejects `workspace-write`.
 
 ## Android client
 

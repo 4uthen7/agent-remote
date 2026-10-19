@@ -89,7 +89,7 @@ struct CleanSessionsView: View {
             ContentUnavailableView {
                 Label("セッションがありません", systemImage: "bubble.left.and.bubble.right")
             } description: {
-                Text("Mac 上の DeepSeek Harness で新しいセッションを開始します。")
+                Text("PC 上の DSH / Codex / Claude で新しいセッションを開始します。")
             } actions: {
                 Button("新規セッション") {
                     showingNewSession = true

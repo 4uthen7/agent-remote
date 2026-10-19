@@ -6,6 +6,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/iOS-17%2B-black)](https://developer.apple.com/ios/)
 [![Platform](https://img.shields.io/badge/Android-8%2B-3DDC84)](https://developer.android.com/)
+[![Hosts](https://img.shields.io/badge/hosts-macOS%20%7C%20Windows%20%7C%20Linux-lightgrey)](docs/platforms.md)
 [![Node](https://img.shields.io/badge/Node-22%2B-339933)](https://nodejs.org/)
 
 Native **iOS and Android** remotes for coding agents running on your own Mac. Both apps
@@ -77,28 +78,62 @@ never talks to a runtime directly.
 See [docs/architecture.md](docs/architecture.md) for the message flow and approval
 correlation details.
 
+## Any host, any phone
+
+The host daemon is not tied to macOS, and the mobile clients are not tied to one host OS.
+
+| Host | iPhone | Android |
+|---|---|---|
+| macOS 13+ | ✅ | ✅ |
+| Windows 10 1809+ / 11 | ✅ | ✅ |
+| Linux | ✅ | ✅ |
+
+The same QR, URL + token, approvals and model menu work in every combination. See
+[docs/platforms.md](docs/platforms.md) for the matrix, and
+[docs/windows.md](docs/windows.md) for native Windows setup (firewall, `dsh`/Codex/Claude,
+WSL2 fallback). Windows support is tested by CI with a real agentd startup/health smoke on
+`windows-latest`.
+
 ## Requirements
 
-- macOS with at least one runtime available:
+- macOS 13+, Windows 10 1809+, or Linux, with at least one runtime available:
   - [DeepSeek Harness](https://github.com/deepseek-ai) installed and logged in
   - **Codex CLI** logged in (`codex login status` shows ChatGPT)
   - **Claude Code** logged in (`claude auth status`) or `ANTHROPIC_API_KEY`
-- Node.js 22+ (developed on Node 24)
+- Node.js 22.19+ (Node 24 recommended)
 - Xcode 26+ and [XcodeGen](https://github.com/yonaskolb/XcodeGen) for the iOS app
-- An iPhone or Android 8+ device on the same LAN as the Mac, or both on a Tailscale tailnet
+- An iPhone or Android 8+ device on the same LAN as the host, or both on a Tailscale tailnet
 - JDK 17 + Android SDK 35 only if you build the Android app from source
 
 Tested with DSH `0.2.1-rc.2`, Codex CLI `0.144.6`, and Claude Code `2.1.216` on macOS.
+Windows is covered by CI (`windows-latest`) for typecheck and agentd startup; install and
+sign in to the runtime CLIs on the Windows host before creating that runtime's session.
 Claude requires a Claude Code login or an API key; the app surfaces a clear error if
 authentication is missing.
+
+## Versions
+
+Each release is a Git tag and GitHub Release; app and daemon versions can differ within a
+release. See [CHANGELOG.md](CHANGELOG.md) and [docs/platforms.md](docs/platforms.md) for the
+version matrix.
 
 ## Quick start
 
 ### 1. Run agentd
 
+macOS/Linux:
+
 ```bash
 cd agentd
 npm install
+npm start
+```
+
+Windows (PowerShell): see [docs/windows.md](docs/windows.md) for the complete setup.
+
+```powershell
+cd agentd
+npm ci
 npm start
 ```
 
@@ -259,6 +294,8 @@ approves one command that writes a temporary file.
 - [x] Native Android client (Jetpack Compose), QR pairing, Keystore, debuggable APK
 - [x] Clean Japanese UI, unsigned IPA packaging
 - [x] App icon (black terminal mark)
+- [x] Windows host support (native + WSL2 fallback), all host/client combinations
+- [x] Cross-platform CI (agentd on Windows/macOS/Linux, Android APK, iOS simulator build)
 - [ ] Application-level E2E + relay
 - [ ] APNs push notifications
 - [ ] App Store hardening
@@ -266,13 +303,14 @@ approves one command that writes a temporary file.
 ## Repository layout
 
 ```
-agentd/                 Node daemon (WebSocket + DSH / Codex / Claude)
+agentd/                 Node daemon (WebSocket + DSH / Codex / Claude; macOS/Windows/Linux)
 ios/                    SwiftUI app (XcodeGen)
   AgentRemote/          clean UI + shared client
 android/                Jetpack Compose app (Gradle)
   app/                  native Android client
 scripts/build-ipa.sh    unsigned device IPA
-docs/                   install, architecture, screenshots
+docs/                   install, architecture, platforms, Windows, screenshots
+CHANGELOG.md            version history
 ```
 
 ## License

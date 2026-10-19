@@ -139,7 +139,7 @@ fun SettingsScreen(state: UiState, store: AgentStore) {
         }
         Spacer(Modifier.height(12.dp))
         Text(
-            "Agent Remote for Android · v${state.version.ifBlank { "0.3.1" }}\nDSH / Codex / Claude",
+            "Agent Remote for Android · v${state.version.ifBlank { "0.3.2" }}\nDSH / Codex / Claude",
             fontSize = 11.sp,
             color = Palette.Secondary,
             lineHeight = 17.sp,

@@ -18,9 +18,17 @@ export function shortTitle(text: string, fallback: string): string {
 }
 
 export function expandHome(input: string): string {
-  if (input === "~") return homedir();
-  if (input.startsWith("~/")) return path.join(homedir(), input.slice(2));
-  return input;
+  let value = input;
+  if (process.platform === "win32") {
+    value = value.replace(/%([^%]+)%/g, (whole, name: string) => process.env[name] ?? whole);
+  }
+  if (value === "~") return homedir();
+  if (/^~[\\/]/.test(value)) return path.join(homedir(), value.slice(2));
+  return value;
+}
+
+function normalizeForCompare(value: string): string {
+  return process.platform === "win32" ? value.toLowerCase() : value;
 }
 
 export function realDirectory(input: string): string {
@@ -40,7 +48,11 @@ export function assertWithinRoots(target: string, roots: string[]): string {
       return path.resolve(expandHome(root));
     }
   });
-  const ok = allowed.some((root) => realTarget === root || realTarget.startsWith(`${root}${path.sep}`));
+  const targetCmp = normalizeForCompare(realTarget);
+  const ok = allowed.some((root) => {
+    const rootCmp = normalizeForCompare(root);
+    return targetCmp === rootCmp || targetCmp.startsWith(`${rootCmp}${path.sep}`);
+  });
   if (!ok) {
     throw new Error(`Path is outside allowed roots: ${realTarget}`);
   }
@@ -54,14 +66,52 @@ export function tokenEquals(expected: string, actual: string): boolean {
   return timingSafeEqual(a, b);
 }
 
-export function lanAddress(): string {
-  const interfaces = networkInterfaces();
-  for (const entries of Object.values(interfaces)) {
+export interface LanAddress {
+  name: string;
+  address: string;
+}
+
+function isPrivateIPv4(address: string): boolean {
+  if (address.startsWith("10.")) return true;
+  if (address.startsWith("192.168.")) return true;
+  const match = /^172\.(\d+)\./.exec(address);
+  if (match) {
+    const second = Number(match[1]);
+    return second >= 16 && second <= 31;
+  }
+  return false;
+}
+
+function lanScore(name: string, address: string): number {
+  let score = 0;
+  if (isPrivateIPv4(address)) score += 100;
+  if (/^(en\d+|eth\d+|wlan\d+|wi-?fi|ethernet|lan)/i.test(name)) score += 50;
+  if (/tailscale/i.test(name)) score -= 10;
+  if (/(vEthernet|WSL|Hyper-V|VirtualBox|VMware|docker|utun|bridge|awdl|llw)/i.test(name)) score -= 100;
+  if (address.startsWith("169.254.")) score -= 200;
+  return score;
+}
+
+export function lanAddresses(): LanAddress[] {
+  const seen = new Set<string>();
+  const candidates: Array<LanAddress & { score: number }> = [];
+  for (const [name, entries] of Object.entries(networkInterfaces())) {
     for (const entry of entries ?? []) {
-      if (entry.family === "IPv4" && !entry.internal) return entry.address;
+      if (entry.family !== "IPv4" || entry.internal || seen.has(entry.address)) continue;
+      seen.add(entry.address);
+      candidates.push({
+        name,
+        address: entry.address,
+        score: lanScore(name, entry.address),
+      });
     }
   }
-  return "127.0.0.1";
+  candidates.sort((a, b) => b.score - a.score || a.name.localeCompare(b.name));
+  return candidates.map(({ name, address }) => ({ name, address }));
+}
+
+export function lanAddress(): string {
+  return lanAddresses()[0]?.address ?? "127.0.0.1";
 }
 
 export function platformName(): string {

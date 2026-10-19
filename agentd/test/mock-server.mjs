@@ -6,7 +6,39 @@ const TOKEN = process.env.MOCK_TOKEN || "demo";
 const now = Date.now();
 const sessions = new Map();
 
-function configOptions(model = '["deepseek-account","deepseek-flash"]') {
+function configOptions(runtime = "dsh", model = '["deepseek-account","deepseek-flash"]') {
+  if (runtime === "codex") {
+    return [
+      {
+        id: "model",
+        name: "Model",
+        category: "model",
+        type: "select",
+        currentValue: model,
+        options: [
+          { value: "gpt-5.6-sol", name: "GPT-5.6-Sol" },
+          { value: "gpt-5.5", name: "GPT-5.5" },
+          { value: "deepseek/deepseek-v4-flash", name: "deepseek/deepseek-v4-flash" },
+        ],
+      },
+    ];
+  }
+  if (runtime === "claude") {
+    return [
+      {
+        id: "model",
+        name: "Model",
+        category: "model",
+        type: "select",
+        currentValue: model,
+        options: [
+          { value: "claude-sonnet-5-5", name: "Claude Sonnet" },
+          { value: "claude-opus-4-6", name: "Claude Opus" },
+          { value: "claude-haiku-4-5", name: "Claude Haiku" },
+        ],
+      },
+    ];
+  }
   return [
     {
       id: "model",
@@ -39,20 +71,24 @@ function configOptions(model = '["deepseek-account","deepseek-flash"]') {
     },
   ];
 }
-
 function makeSession({ id, title, cwd, status = "idle", runtime = "dsh", model = '["deepseek-account","deepseek-flash"]' }) {
+  const displayModel = runtime === "codex"
+    ? (model.startsWith("gpt") || model.includes("/") ? model : "gpt-5.6-sol")
+    : runtime === "claude"
+      ? "claude-sonnet-5-5"
+      : model.includes("pro") ? "DeepSeek-V4-Pro" : "DeepSeek-V4.1-Flash";
   return {
     id,
     title,
     cwd,
     status,
     runtime,
-    model: runtime === "codex" ? "gpt-5.6-sol" : runtime === "claude" ? "claude-sonnet-5-5" : model.includes("pro") ? "DeepSeek-V4-Pro" : "DeepSeek-V4.1-Flash",
+    model: displayModel,
     createdAt: now,
     updatedAt: now,
     events: [],
     seq: 0,
-    configOptions: configOptions(model),
+    configOptions: configOptions(runtime, displayModel),
     pendingApprovals: [],
   };
 }
@@ -323,7 +359,7 @@ wss.on("connection", (ws) => {
       case "set_model": {
         const session = sessions.get(message.sessionId);
         if (!session) break;
-        session.configOptions = configOptions(message.value);
+        session.configOptions = configOptions(session.runtime, message.value);
         session.model = String(message.value).includes("pro") ? "DeepSeek-V4-Pro" : "DeepSeek-V4.1-Flash";
         send({
           type: "models",

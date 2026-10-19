@@ -1,5 +1,11 @@
 # Install on iPhone
 
+## Host OS
+
+agentd runs on macOS, Windows, or Linux; the iPhone and Android clients are host-agnostic.
+This page covers the iOS app and pairing. For Windows, use
+[windows.md](windows.md) for Node, firewall, `dsh`/Codex/Claude and WSL2 details.
+
 ## Build the IPA
 
 ```bash
@@ -62,13 +68,17 @@ Host URL for Android:
 
 | Situation | URL |
 |---|---|
-| Phone on the same Wi-Fi | `ws://<Mac LAN IP>:8787/ws` |
+| Phone on the same Wi-Fi | `ws://<host LAN IP>:8787/ws` |
 | Tailscale | `ws://<tailscale IP>:8787/ws` |
 | Android emulator | `ws://10.0.2.2:8787/ws` |
 
 Do not use `127.0.0.1`/`localhost` on the phone. The easiest path is to scan the QR code
 printed by agentd; it fills both fields. The `?` button at the top-left opens a setup
 guide whose advice changes with your progress.
+
+For a **Windows host**, allow Node.js on Private networks, then use the Windows Wi-Fi
+IPv4 (for example `ws://192.168.1.25:8787/ws`). On an Android emulator running on Windows,
+`ws://10.0.2.2:8787/ws` still points at the Windows host.
 
 ## Runtime logins
 

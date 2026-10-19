@@ -195,7 +195,7 @@ fun ConnectScreen(state: UiState, store: AgentStore, onHelp: () -> Unit) {
             modifier = Modifier.padding(start = 4.dp, end = 4.dp, top = 8.dp),
         )
         Text(
-            "トークン: agentd の Token: の行、または cat ~/.agent-remote/token",
+            "トークン: agentd の Token: の行、または ~/.agent-remote/token（Windowsは %USERPROFILE%\\.agent-remote\\token）",
             fontSize = 12.sp,
             lineHeight = 17.sp,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -230,7 +230,7 @@ fun ConnectScreen(state: UiState, store: AgentStore, onHelp: () -> Unit) {
             Text("QR コードをスキャン", fontSize = 15.sp, fontWeight = FontWeight.Medium)
         }
         Text(
-            "Macのターミナルに出ているQRを読み取るだけ。URLとトークンが自動で入ります。",
+            "PCのターミナルに出ているQRを読み取るだけ。URLとトークンが自動で入ります。",
             fontSize = 12.sp,
             lineHeight = 17.sp,
             color = Palette.Secondary,
@@ -330,10 +330,10 @@ private fun isLoopbackHost(url: String): Boolean {
 
 private fun hostHint(url: String): String {
     if (url.isBlank()) {
-        return "ホスト: Macのターミナルに出る WebSocket: の行を貼り付け。実機はLAN/TailscaleのIP、エミュレータは 10.0.2.2 です。"
+        return "ホスト: PCのターミナルに出る WebSocket: の行を貼り付け。実機はLAN/TailscaleのIP、エミュレータは 10.0.2.2 です。"
     }
     if (isLoopbackHost(url)) {
-        return "127.0.0.1 / localhost はAndroid自身を指すため使えません。MacのLAN IPまたはTailscale IPに置き換えてください。"
+        return "127.0.0.1 / localhost はAndroid自身を指すため使えません。PCのLAN IPまたはTailscale IPに置き換えてください。"
     }
     return "ホスト例: ws://192.168.1.10:8787/ws（agentdの表示をそのまま使用）"
 }

@@ -1,4 +1,5 @@
-import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
+import type { ChildProcessWithoutNullStreams } from "node:child_process";
+import spawn from "cross-spawn";
 import { EventEmitter } from "node:events";
 import path from "node:path";
 import readline from "node:readline";
@@ -57,7 +58,8 @@ class CodexClient extends EventEmitter {
     const child = spawn(this.command, ["app-server", "--listen", "stdio://"], {
       stdio: ["pipe", "pipe", "pipe"],
       env: process.env,
-    });
+      windowsHide: true,
+    }) as ChildProcessWithoutNullStreams;
     this.child = child;
 
     const lines = readline.createInterface({ input: child.stdout });
@@ -254,17 +256,30 @@ export class CodexAdapter extends EventEmitter implements RuntimeAdapter {
   }
 
   async newSession(cwd: string): Promise<SessionSummary> {
-    const result = await this.requireClient().request<Record<string, unknown>>(
-      "thread/start",
-      {
-        cwd,
-        approvalPolicy: "on-request",
-        approvalsReviewer: "user",
-        sandbox: "workspace-write",
-        serviceName: "agent-remote",
-      },
-      60_000,
-    );
+    const client = this.requireClient();
+    const baseParams = {
+      cwd,
+      approvalPolicy: "on-request",
+      approvalsReviewer: "user",
+      serviceName: "agent-remote",
+    };
+    let result: Record<string, unknown>;
+    try {
+      result = await client.request<Record<string, unknown>>(
+        "thread/start",
+        { ...baseParams, sandbox: "workspace-write" },
+        60_000,
+      );
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      // Codex's Windows sandbox support varies by release. If the configured
+      // sandbox is rejected, fall back to the CLI's own platform default.
+      if (process.platform !== "win32" || !/sandbox|unsupported|not supported/i.test(message)) {
+        throw error;
+      }
+      this.options.logger?.(`codex sandbox unavailable on Windows; using CLI default: ${message}`);
+      result = await client.request<Record<string, unknown>>("thread/start", baseParams, 60_000);
+    }
     const thread = asRecord(result.thread);
     const threadId = pickString(thread.id);
     if (!threadId) throw new Error("Codex did not return a thread id");

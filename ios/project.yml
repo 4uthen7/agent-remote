@@ -36,8 +36,8 @@ targets:
       path: AgentRemote/Info.plist
       properties:
         CFBundleDisplayName: Agent Remote
-        CFBundleShortVersionString: "0.2.1"
-        CFBundleVersion: "3"
+        CFBundleShortVersionString: "0.2.2"
+        CFBundleVersion: "4"
         CFBundleIcons:
           CFBundlePrimaryIcon:
             CFBundleIconFiles:
@@ -48,7 +48,7 @@ targets:
           - UIInterfaceOrientationPortrait
           - UIInterfaceOrientationLandscapeLeft
           - UIInterfaceOrientationLandscapeRight
-        NSLocalNetworkUsageDescription: "Mac 上の agentd に接続するためにローカルネットワークを使用します。"
+        NSLocalNetworkUsageDescription: "PC 上の agentd に接続するためにローカルネットワークを使用します。"
         NSCameraUsageDescription: "ペアリング用 QR コードを読み取るためにカメラを使用します。"
         CFBundleURLTypes:
           - CFBundleURLName: com.4uthent.agentremote

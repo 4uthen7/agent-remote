@@ -86,7 +86,7 @@ fun SessionsScreen(state: UiState, store: AgentStore, onHelp: () -> Unit) {
                 item {
                     EmptyState(
                         "セッションがありません",
-                        "Mac 上の DSH / Codex / Claude で新しいセッションを開始します。",
+                        "PC 上の DSH / Codex / Claude で新しいセッションを開始します。",
                     )
                 }
             } else {
@@ -107,7 +107,7 @@ fun SessionsScreen(state: UiState, store: AgentStore, onHelp: () -> Unit) {
                 ) {
                     Text("LOCAL TRANSPORT · TAILSCALE READY", fontSize = 9.sp, color = Palette.Secondary, letterSpacing = 1.sp)
                     Text("·", fontSize = 9.sp, color = Palette.Tertiary)
-                    Text("v${state.version.ifBlank { "0.3.1" }}", fontSize = 9.sp, color = Palette.Secondary)
+                    Text("v${state.version.ifBlank { "0.3.2" }}", fontSize = 9.sp, color = Palette.Secondary)
                 }
             }
         }
@@ -137,7 +137,7 @@ private fun HostCard(state: UiState) {
             }
             Column(Modifier.weight(1f)) {
                 Text(
-                    state.host.ifBlank { "Mac" },
+                    state.host.ifBlank { "PC" },
                     fontSize = 16.sp,
                     fontWeight = FontWeight.SemiBold,
                     maxLines = 1,
