@@ -228,7 +228,7 @@ fun TimelineScreen(state: UiState, store: AgentStore, onHelp: () -> Unit) {
                 },
                 onCancel = store::cancel,
                 busy = session.isRunning,
-                enabled = state.activeApproval == null && !session.archived,
+                enabled = state.isConnected && state.activeApproval == null && !session.archived,
             )
         }
     }

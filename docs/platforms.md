@@ -55,6 +55,7 @@ See [windows.md](windows.md) for native Windows setup and the WSL2 fallback.
 
 | Release | agentd | iOS | Android | Highlights |
 |---|---|---|---|---|
+| v1.0.2 | 0.6.1 | 0.4.1 | 0.5.1 | Off-LAN reconnect without losing the current session |
 | v1.0.1 | 0.6.1 | 0.4.0 | 0.5.0 | Native CLI history import + desktop Sessions tab |
 | v1.0.0 | 0.6.0 | 0.4.0 | 0.5.0 | Desktop host app (Windows/macOS, Node bundled, tool detection, QR) |
 | v0.7.0 | 0.6.0 | 0.4.0 | 0.5.0 | Encrypted relay sync for shared session archives |

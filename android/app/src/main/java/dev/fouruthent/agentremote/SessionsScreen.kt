@@ -143,7 +143,7 @@ fun SessionsScreen(state: UiState, store: AgentStore, onHelp: () -> Unit) {
                 ) {
                     Text("LOCAL TRANSPORT · TAILSCALE READY", fontSize = 9.sp, color = Palette.Secondary, letterSpacing = 1.sp)
                     Text("·", fontSize = 9.sp, color = Palette.Tertiary)
-                    Text("v${state.version.ifBlank { "0.5.0" }}", fontSize = 9.sp, color = Palette.Secondary)
+                    Text("v${state.version.ifBlank { "0.5.1" }}", fontSize = 9.sp, color = Palette.Secondary)
                 }
             }
         }

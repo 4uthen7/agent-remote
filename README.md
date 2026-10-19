@@ -73,6 +73,8 @@ Build instructions and limitations: [desktop/README.md](desktop/README.md).
   background; enable it in **Settings → App lock**.
 - **Session history & resume** — conversations survive `agentd` restarts, are grouped by
   project in the app, and ended sessions can be reopened with their timeline intact.
+- **Automatic reconnect** — a dropped Tailscale/LAN connection keeps the current timeline,
+  retries with backoff and re-subscribes instead of returning to the top screen.
 - **Pseudo cloud sync** — use a cloud-synced archive folder, or run the included
   encrypted sync relay and join the same room from every host. The app shows projects and
   their sessions, and can resume sessions that belong to the connected host.

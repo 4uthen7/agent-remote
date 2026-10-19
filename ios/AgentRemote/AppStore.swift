@@ -22,6 +22,10 @@ final class AppStore: ObservableObject {
     @AppStorage("selectedRuntime") var selectedRuntime: String = "dsh"
 
     private var client: AgentClient?
+    private var connectionGeneration = 0
+    private var reconnectTask: Task<Void, Never>?
+    private var reconnectAttempt = 0
+    private var hadConnected = false
     private var pendingDemoCwd: String?
     private var pendingOpenSessionId: String?
     private var pendingOpenAfterCreate = false
@@ -70,6 +74,11 @@ final class AppStore: ObservableObject {
     }
 
     func connect() {
+        reconnectAttempt = 0
+        openSocket(isReconnect: false)
+    }
+
+    private func openSocket(isReconnect: Bool) {
         guard let url = URL(string: serverURL.trimmingCharacters(in: .whitespacesAndNewlines)),
               let scheme = url.scheme,
               scheme == "ws" || scheme == "wss" else {
@@ -81,14 +90,48 @@ final class AppStore: ObservableObject {
             return
         }
 
+        connectionGeneration += 1
+        let generation = connectionGeneration
+        reconnectTask?.cancel()
+        reconnectTask = nil
+        client?.disconnect()
         lastError = nil
         connection = .connecting
         let client = AgentClient()
         self.client = client
         client.onEvent = { [weak self] event in
-            self?.handle(event)
+            guard let self, generation == self.connectionGeneration else { return }
+            switch event {
+            case .closed(let reason):
+                self.lostConnection(reason, generation: generation)
+            default:
+                self.handle(event)
+            }
         }
         client.connect(url: url)
+    }
+
+    private func lostConnection(_ reason: String?, generation: Int) {
+        guard generation == connectionGeneration else { return }
+        if hadConnected || !path.isEmpty || currentSession != nil {
+            scheduleReconnect(generation, reason: reason)
+        } else {
+            connection = .failed(reason ?? "Disconnected")
+        }
+    }
+
+    private func scheduleReconnect(_ generation: Int, reason: String?) {
+        guard generation == connectionGeneration else { return }
+        reconnectTask?.cancel()
+        let delay = min(2 << min(reconnectAttempt, 3), 15)
+        reconnectAttempt += 1
+        connection = .connecting
+        lastError = "再接続中…\n\(reason ?? "")"
+        reconnectTask = Task { [weak self] in
+            try? await Task.sleep(for: .seconds(delay))
+            guard !Task.isCancelled, let self, generation == self.connectionGeneration else { return }
+            self.openSocket(isReconnect: true)
+        }
     }
 
     func setToken(_ value: String) {
@@ -101,6 +144,11 @@ final class AppStore: ObservableObject {
     }
 
     func disconnect() {
+        connectionGeneration += 1
+        reconnectTask?.cancel()
+        reconnectTask = nil
+        hadConnected = false
+        reconnectAttempt = 0
         client?.disconnect()
         client = nil
         connection = .disconnected
@@ -241,7 +289,7 @@ final class AppStore: ObservableObject {
         case .message(let message):
             handle(message)
         case .closed(let reason):
-            connection = .failed(reason ?? "Disconnected")
+            lostConnection(reason, generation: connectionGeneration)
         }
     }
 
@@ -253,6 +301,11 @@ final class AppStore: ObservableObject {
             }
             sessions = message.sessions ?? []
             lastError = nil
+            hadConnected = true
+            reconnectAttempt = 0
+            if let session = currentSession {
+                send(ClientMessage(type: "subscribe", sessionId: session.id))
+            }
             if let sessionId = pendingOpenSessionId,
                let session = sessions.first(where: { $0.id == sessionId }) {
                 pendingOpenSessionId = nil

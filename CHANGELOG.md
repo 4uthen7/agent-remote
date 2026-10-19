@@ -4,6 +4,17 @@ All notable changes are published as Git tags and GitHub Releases.
 The format follows a simple semantic versioning scheme; app and daemon versions can differ
 within one release.
 
+## v1.0.2 — 2026-10-19
+
+- **Mobile reconnect**: when the WebSocket drops (network switch, Tailscale reconnect,
+  laptop sleep), iOS/Android keep the current project/chat, reconnect with backoff, and
+  re-subscribe to the session instead of returning to the connect screen.
+- Composer is disabled while reconnecting; history remains visible.
+- Native Codex/Claude/DSH history import from v1.0.1 is included in the host update.
+- Off-LAN use still requires Tailscale or another reachable endpoint; LAN URLs cannot be
+  used over cellular.
+- iOS **0.4.1**, Android **0.5.1**, agentd **0.6.1**.
+
 ## v1.0.1 — 2026-10-19
 
 - **Native history import**: on startup agentd imports existing Codex threads, Claude

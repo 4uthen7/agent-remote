@@ -68,7 +68,7 @@ jobs:
           path: artifacts
       - uses: softprops/action-gh-release@v2
         with:
-          body_path: docs/releases/v1.0.1.md
+          body_path: docs/releases/v1.0.2.md
           files: |
             artifacts/agent-remote-macos/*.dmg
             artifacts/agent-remote-macos/*-mac.zip

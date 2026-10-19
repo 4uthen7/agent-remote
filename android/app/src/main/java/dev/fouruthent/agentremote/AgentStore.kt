@@ -2,6 +2,8 @@ package dev.fouruthent.agentremote
 
 import android.app.Application
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import androidx.lifecycle.AndroidViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -50,6 +52,11 @@ class AgentStore(application: Application) : AndroidViewModel(application) {
 
     private var client: AgentClient? = null
     private var pendingCreate = false
+    private val mainHandler = Handler(Looper.getMainLooper())
+    private var connectionGeneration = 0
+    private var reconnectAttempt = 0
+    private var reconnectScheduled = false
+    private var hadConnected = false
 
     init {
         val current = _state.value
@@ -81,6 +88,11 @@ class AgentStore(application: Application) : AndroidViewModel(application) {
     }
 
     fun connect() {
+        reconnectAttempt = 0
+        openSocket(isReconnect = false)
+    }
+
+    private fun openSocket(isReconnect: Boolean) {
         val current = _state.value
         if (current.serverUrl.isBlank()) {
             _state.update { it.copy(lastError = "ホストURLを入力してください", route = Route.Connect) }
@@ -90,23 +102,68 @@ class AgentStore(application: Application) : AndroidViewModel(application) {
             _state.update { it.copy(lastError = "トークンを入力してください", route = Route.Connect) }
             return
         }
+        connectionGeneration += 1
+        val generation = connectionGeneration
+        reconnectScheduled = false
         client?.close()
-        _state.update { it.copy(connection = ConnectionState.Connecting, route = Route.Connect, lastError = null) }
+        _state.update {
+            it.copy(
+                connection = ConnectionState.Connecting,
+                route = if (isReconnect) it.route else Route.Connect,
+                lastError = if (isReconnect) "再接続中…" else null,
+            )
+        }
         val next = AgentClient(object : AgentClient.Listener {
-            override fun onOpen() = sendHello()
+            override fun onOpen() {
+                if (generation == connectionGeneration) sendHello()
+            }
+
             override fun onMessage(text: String) {
+                if (generation != connectionGeneration) return
                 runCatching { handleMessage(JSONObject(text)) }
                     .onFailure { _state.update { s -> s.copy(lastError = "応答を解析できません: ${it.message}") } }
             }
+
             override fun onClosed(reason: String) {
-                _state.update { it.copy(connection = ConnectionState.Failed, route = Route.Connect, lastError = reason) }
+                if (generation == connectionGeneration) lostConnection(reason, generation)
             }
+
             override fun onFailure(error: String) {
-                _state.update { it.copy(connection = ConnectionState.Failed, route = Route.Connect, lastError = error) }
+                if (generation == connectionGeneration) lostConnection(error, generation)
             }
         })
         client = next
         next.connect(current.serverUrl)
+    }
+
+    private fun lostConnection(reason: String, generation: Int) {
+        val current = _state.value
+        if (hadConnected || current.route != Route.Connect) {
+            scheduleReconnect(generation, reason)
+            return
+        }
+        _state.update {
+            it.copy(connection = ConnectionState.Failed, route = Route.Connect, lastError = reason)
+        }
+    }
+
+    private fun scheduleReconnect(generation: Int, reason: String) {
+        if (reconnectScheduled || generation != connectionGeneration) return
+        reconnectScheduled = true
+        val delay = (2_000L shl reconnectAttempt.coerceAtMost(3)).coerceAtMost(15_000L)
+        reconnectAttempt += 1
+        _state.update {
+            it.copy(
+                connection = ConnectionState.Connecting,
+                lastError = "再接続中…（${reason.take(60)}）",
+            )
+        }
+        mainHandler.postDelayed({
+            if (generation == connectionGeneration) {
+                reconnectScheduled = false
+                openSocket(isReconnect = true)
+            }
+        }, delay)
     }
 
     private fun sendHello() {
@@ -314,6 +371,11 @@ class AgentStore(application: Application) : AndroidViewModel(application) {
     }
 
     fun disconnect() {
+        connectionGeneration += 1
+        mainHandler.removeCallbacksAndMessages(null)
+        reconnectScheduled = false
+        hadConnected = false
+        reconnectAttempt = 0
         client?.close()
         client = null
         pendingCreate = false
@@ -361,6 +423,12 @@ class AgentStore(application: Application) : AndroidViewModel(application) {
                         route = if (it.route == Route.Connect) Route.Sessions else it.route,
                         lastError = null,
                     )
+                }
+                hadConnected = true
+                reconnectAttempt = 0
+                val session = _state.value.currentSession
+                if (session != null) {
+                    send("subscribe") { it.put("sessionId", session.id) }
                 }
             }
             "sessions" -> _state.update { it.copy(sessions = Json.parseSessions(Json.array(message, "sessions"))) }

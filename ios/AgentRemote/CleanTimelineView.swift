@@ -18,7 +18,7 @@ struct CleanTimelineView: View {
     }
 
     private var canSend: Bool {
-        !draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !isBusy && session?.isArchived != true
+        !draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && store.connection.isConnected && !isBusy && session?.isArchived != true
     }
 
     var body: some View {
