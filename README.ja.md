@@ -127,6 +127,13 @@ AGENT_REMOTE_PUBLIC_URL="ws://$(tailscale ip -4):8787/ws" npm start
 
 脅威モデルと脆弱性の報告方法は [SECURITY.md](SECURITY.md) を参照してください。
 
+## プライバシー
+
+- iOS アプリには **解析・広告・第三者 SDK は入っていません**
+- 接続先は、あなたが入力または QR で指定した `agentd` だけです。ベンダーのサーバーはありません
+- プロンプト、ファイル、モデル出力は、iPhone・Mac・DeepSeek Harness に設定したモデル提供元の間だけを流れます
+- ペアリング用トークンは iOS の Keychain と Mac の `~/.agent-remote/token` に保存され、このリポジトリや Release IPA には含まれません
+
 ## 設定
 
 | 変数 | デフォルト | 用途 |

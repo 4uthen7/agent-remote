@@ -133,6 +133,15 @@ AGENT_REMOTE_PUBLIC_URL="ws://$(tailscale ip -4):8787/ws" npm start
 
 See [SECURITY.md](SECURITY.md) for the threat model and reporting instructions.
 
+## Privacy
+
+- The iOS app contains **no analytics, advertising or third-party SDKs**.
+- It connects only to the `agentd` URL you enter or scan. There is no vendor backend.
+- Prompts, files and model output stay between your iPhone, your Mac and the model
+  provider configured in DeepSeek Harness — the same provider you already use.
+- Pairing tokens are stored in the iOS Keychain and in `~/.agent-remote/token` on the
+  Mac; they are not part of this repository or the release IPA.
+
 ## Configuration
 
 | Variable | Default | Purpose |
