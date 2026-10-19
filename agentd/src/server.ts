@@ -1,9 +1,9 @@
 import http from "node:http";
 import { WebSocketServer, WebSocket } from "ws";
 import type { AgentConfig } from "./config.js";
-import type { DshAdapter } from "./acp/dsh.js";
+import type { RuntimeManager } from "./runtime/manager.js";
 import { assertWithinRoots, log, now, tokenEquals } from "./util.js";
-import type { HostInfo, SessionSummary } from "./types.js";
+import type { HostInfo, RuntimeId, SessionSummary } from "./types.js";
 
 interface ClientState {
   ws: WebSocket;
@@ -25,7 +25,12 @@ export interface AgentServer {
   sessionCount: () => number;
 }
 
-export function createAgentServer(config: AgentConfig, adapter: DshAdapter): AgentServer {
+function normalizeRuntime(value: unknown): RuntimeId {
+  if (value === "codex" || value === "claude") return value;
+  return "dsh";
+}
+
+export function createAgentServer(config: AgentConfig, manager: RuntimeManager): AgentServer {
   const clients = new Map<WebSocket, ClientState>();
   const startedAt = now();
 
@@ -46,7 +51,7 @@ export function createAgentServer(config: AgentConfig, adapter: DshAdapter): Age
   }
 
   function sendSessionList(): void {
-    broadcast({ type: "sessions", sessions: adapter.listSessions() });
+    broadcast({ type: "sessions", sessions: manager.listSessions() });
   }
 
   function handleMessage(client: ClientState, raw: string): void {
@@ -75,7 +80,7 @@ export function createAgentServer(config: AgentConfig, adapter: DshAdapter): Age
         type: "hello_ok",
         host,
         version: config.version,
-        sessions: adapter.listSessions(),
+        sessions: manager.listSessions(),
       });
       return;
     }
@@ -88,19 +93,20 @@ export function createAgentServer(config: AgentConfig, adapter: DshAdapter): Age
 
     switch (type) {
       case "list_sessions":
-        send(client.ws, { type: "sessions", sessions: adapter.listSessions() });
+        send(client.ws, { type: "sessions", sessions: manager.listSessions() });
         break;
 
       case "create_session": {
         try {
+          const runtime = normalizeRuntime(message.runtime);
           const cwd = assertWithinRoots(String(message.cwd ?? ""), config.roots);
-          void adapter
-            .newSession(cwd)
+          void manager
+            .newSession(cwd, runtime)
             .then((session) => {
               client.sessionId = session.id;
               send(client.ws, { type: "session", session });
               sendSessionList();
-              const snapshot = adapter.snapshot(session.id);
+              const snapshot = manager.snapshot(session.id);
               if (snapshot) send(client.ws, { type: "snapshot", ...snapshot });
             })
             .catch((error: unknown) => {
@@ -121,18 +127,19 @@ export function createAgentServer(config: AgentConfig, adapter: DshAdapter): Age
       case "resume_session": {
         try {
           const sessionId = String(message.sessionId ?? "");
-          const existing = adapter.getSession(sessionId);
+          const runtime = message.runtime === undefined ? undefined : normalizeRuntime(message.runtime);
+          const existing = manager.getSession(sessionId);
           const cwd = assertWithinRoots(
             String(message.cwd ?? existing?.cwd ?? ""),
             config.roots,
           );
-          void adapter
-            .resumeSession(sessionId, cwd)
+          void manager
+            .resumeSession(sessionId, cwd, runtime)
             .then((session) => {
               client.sessionId = session.id;
               send(client.ws, { type: "session", session });
               sendSessionList();
-              const snapshot = adapter.snapshot(session.id);
+              const snapshot = manager.snapshot(session.id);
               if (snapshot) send(client.ws, { type: "snapshot", ...snapshot });
             })
             .catch((error: unknown) => {
@@ -152,7 +159,7 @@ export function createAgentServer(config: AgentConfig, adapter: DshAdapter): Age
 
       case "subscribe": {
         const sessionId = String(message.sessionId ?? "");
-        const snapshot = adapter.snapshot(sessionId);
+        const snapshot = manager.snapshot(sessionId);
         if (!snapshot) {
           send(client.ws, { type: "error", message: `Unknown session: ${sessionId}` });
           break;
@@ -164,7 +171,7 @@ export function createAgentServer(config: AgentConfig, adapter: DshAdapter): Age
 
       case "close_session": {
         const sessionId = String(message.sessionId ?? "");
-        void adapter.closeSession(sessionId).catch((error: unknown) => {
+        void manager.closeSession(sessionId).catch((error: unknown) => {
           send(client.ws, {
             type: "error",
             message: error instanceof Error ? error.message : String(error),
@@ -180,7 +187,7 @@ export function createAgentServer(config: AgentConfig, adapter: DshAdapter): Age
           send(client.ws, { type: "error", message: "Prompt is empty" });
           break;
         }
-        void adapter.prompt(sessionId, text).catch((error: unknown) => {
+        void manager.prompt(sessionId, text).catch((error: unknown) => {
           send(client.ws, {
             type: "error",
             message: error instanceof Error ? error.message : String(error),
@@ -190,14 +197,14 @@ export function createAgentServer(config: AgentConfig, adapter: DshAdapter): Age
       }
 
       case "cancel": {
-        adapter.cancel(String(message.sessionId ?? ""));
+        manager.cancel(String(message.sessionId ?? ""));
         break;
       }
 
       case "set_model": {
         const sessionId = String(message.sessionId ?? "");
         const value = String(message.value ?? "");
-        void adapter
+        void manager
           .setModel(sessionId, value)
           .then((configOptions) => {
             send(client.ws, { type: "models", sessionId, configOptions });
@@ -218,7 +225,7 @@ export function createAgentServer(config: AgentConfig, adapter: DshAdapter): Age
           send(client.ws, { type: "error", message: "approvalId and optionId are required" });
           break;
         }
-        if (!adapter.resolveApproval(approvalId, optionId)) {
+        if (!manager.resolveApproval(approvalId, optionId)) {
           send(client.ws, { type: "error", message: "Approval is no longer pending" });
         }
         break;
@@ -261,30 +268,30 @@ export function createAgentServer(config: AgentConfig, adapter: DshAdapter): Age
   });
 
   // Adapter events are authoritative; the server fans them out.
-  adapter.on("session", (session: SessionSummary) => {
+  manager.on("session", (session: SessionSummary) => {
     broadcast({ type: "session", session });
     sendSessionList();
   });
-  adapter.on("event", ({ sessionId, event }) => {
+  manager.on("event", ({ sessionId, event }) => {
     broadcast({ type: "event", sessionId, event });
   });
-  adapter.on("approval", (approval) => {
+  manager.on("approval", (approval) => {
     broadcast({ type: "approval", approval });
   });
-  adapter.on("approval_resolved", (resolution) => {
+  manager.on("approval_resolved", (resolution) => {
     broadcast({ type: "approval_resolved", ...resolution });
   });
-  adapter.on("config", ({ sessionId, configOptions, model }) => {
+  manager.on("config", ({ sessionId, configOptions, model }) => {
     broadcast({ type: "models", sessionId, configOptions, model });
   });
-  adapter.on("session_removed", ({ sessionId }) => {
+  manager.on("session_removed", ({ sessionId }) => {
     broadcast({ type: "session_removed", sessionId });
     sendSessionList();
   });
-  adapter.on("error", ({ message }) => {
+  manager.on("error", ({ message }) => {
     broadcast({ type: "error", message });
   });
-  adapter.on("exit", ({ reason }) => {
+  manager.on("exit", ({ reason }) => {
     broadcast({ type: "error", message: reason });
   });
 
@@ -297,7 +304,7 @@ export function createAgentServer(config: AgentConfig, adapter: DshAdapter): Age
           ok: true,
           version: config.version,
           host: config.hostName,
-          sessions: adapter.listSessions().length,
+          sessions: manager.listSessions().length,
           uptimeMs: now() - startedAt,
         }),
       );
@@ -341,6 +348,6 @@ export function createAgentServer(config: AgentConfig, adapter: DshAdapter): Age
   return {
     server,
     close,
-    sessionCount: () => adapter.listSessions().length,
+    sessionCount: () => manager.listSessions().length,
   };
 }

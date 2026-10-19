@@ -41,6 +41,18 @@ APNs（プッシュ通知）は有料アカウントが必要です。
 このアプリは特別な entitlement を使わないため、無料の Apple ID でもインストールできます。
 このビルドにプッシュ通知は含まれていません。
 
+## ランタイムのログイン
+
+アプリからは DeepSeek Harness / Codex / Claude を起動できます。それぞれのログインが必要です:
+
+```bash
+dsh                      # DeepSeek Harness にログイン（初回のみ）
+codex login status       # ChatGPT と表示されること
+claude auth status       # loggedIn: true、または ANTHROPIC_API_KEY を設定
+```
+
+ログインしていないランタイムだけがエラーになり、agentd 全体は止まりません。
+
 ## agentd を起動
 
 Mac 側:
@@ -86,6 +98,8 @@ AGENT_REMOTE_PUBLIC_URL="ws://$(tailscale ip -4):8787/ws" npm start
 | `Invalid token` | 現在の QR を再スキャン。`cat ~/.agent-remote/token` と比較 |
 | 接続できない | 同じ Wi-Fi か、macOS ファイアウォールが Node を許可しているか、iOS のローカルネットワーク許可を確認 |
 | `cwd` が拒否される | `$HOME` 配下を指定するか、`AGENT_REMOTE_ROOTS` に追加 |
+| Claude が `Not logged in` | `claude auth login` を実行、または `ANTHROPIC_API_KEY` を設定 |
+| Codex が model not supported | セッションのモデルメニューから対応モデルを選ぶ、または `~/.codex/config.toml` を修正 |
 | 7日で起動しなくなる | Sideloadly / AltStore で再署名。AltStore は AltServer を起動したままにする |
 | Sideloadly が iPhone を認識しない | ロック解除、コンピュータを信頼、開発者モードを確認 |
 | iOS 27 でインストールできない | Sideloadly / AltStore / Xcode を更新し、対応状況を確認 |

@@ -11,9 +11,9 @@ include a live bearer token or private source code in the report.
 
 ## Threat model
 
-`agentd` is a remote-control bridge for a coding agent running with your macOS user's
-permissions. It is **not** a sandbox and it is not hardened to be exposed directly to
-the public internet.
+`agentd` is a remote-control bridge for coding agents (DeepSeek Harness, Codex, or
+Claude) running with your macOS user's permissions. It is **not** a sandbox and it is
+not hardened to be exposed directly to the public internet.
 
 Assets:
 

@@ -80,6 +80,22 @@ enum CleanText {
         guard let model, !model.isEmpty else { return "デフォルト" }
         return model.replacingOccurrences(of: "DeepSeek-", with: "")
     }
+
+    static func runtime(_ runtime: String) -> String {
+        switch runtime {
+        case "codex": return "Codex"
+        case "claude": return "Claude"
+        default: return "DeepSeek"
+        }
+    }
+
+    static func runtimeColor(_ runtime: String) -> Color {
+        switch runtime {
+        case "codex": return .green
+        case "claude": return .orange
+        default: return .blue
+        }
+    }
 }
 
 enum CleanConfig {

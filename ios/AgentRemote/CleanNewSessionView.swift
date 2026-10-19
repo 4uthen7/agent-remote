@@ -4,11 +4,25 @@ struct CleanNewSessionView: View {
     @EnvironmentObject private var store: AppStore
     @Environment(\.dismiss) private var dismiss
     @State private var cwd = ""
+    @State private var runtime = "dsh"
     @FocusState private var focused: Bool
 
     var body: some View {
         NavigationStack {
             Form {
+                Section {
+                    Picker("エージェント", selection: $runtime) {
+                        Text("DeepSeek Harness").tag("dsh")
+                        Text("Codex").tag("codex")
+                        Text("Claude Code").tag("claude")
+                    }
+                    .pickerStyle(.inline)
+                } header: {
+                    Text("ランタイム")
+                } footer: {
+                    Text("各ランタイムのCLIにログインしている必要があります。")
+                }
+
                 Section {
                     TextField("~/Documents/project", text: $cwd)
                         .textInputAutocapitalization(.never)
@@ -29,7 +43,7 @@ struct CleanNewSessionView: View {
 
                 Section {
                     Button {
-                        store.createSession(cwd: cwd)
+                        store.createSession(cwd: cwd, runtime: runtime)
                         dismiss()
                     } label: {
                         Text("セッションを開始")
@@ -49,6 +63,7 @@ struct CleanNewSessionView: View {
             }
             .onAppear {
                 cwd = store.lastCwd
+                runtime = store.selectedRuntime
                 focused = true
             }
         }

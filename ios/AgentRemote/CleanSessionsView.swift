@@ -24,7 +24,7 @@ struct CleanSessionsView: View {
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(store.host?.name ?? "接続中のホスト")
                                     .font(.subheadline.weight(.semibold))
-                                Text("DeepSeek Harness")
+                                Text("DSH / Codex / Claude")
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
                             }
@@ -127,6 +127,12 @@ struct CleanSessionRow: View {
                     Text(CleanText.status(session.status))
                         .font(.caption2)
                         .foregroundStyle(.secondary)
+                    Text("·")
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                    Text(CleanText.runtime(session.runtime))
+                        .font(.caption2.weight(.medium))
+                        .foregroundStyle(CleanText.runtimeColor(session.runtime))
                     Text("·")
                         .font(.caption2)
                         .foregroundStyle(.tertiary)

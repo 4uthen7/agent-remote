@@ -40,14 +40,14 @@ function configOptions(model = '["deepseek-account","deepseek-flash"]') {
   ];
 }
 
-function makeSession({ id, title, cwd, status = "idle", model = '["deepseek-account","deepseek-flash"]' }) {
+function makeSession({ id, title, cwd, status = "idle", runtime = "dsh", model = '["deepseek-account","deepseek-flash"]' }) {
   return {
     id,
     title,
     cwd,
     status,
-    runtime: "dsh",
-    model: model.includes("pro") ? "DeepSeek-V4-Pro" : "DeepSeek-V4.1-Flash",
+    runtime,
+    model: runtime === "codex" ? "gpt-5.6-sol" : runtime === "claude" ? "claude-sonnet-5-5" : model.includes("pro") ? "DeepSeek-V4-Pro" : "DeepSeek-V4.1-Flash",
     createdAt: now,
     updatedAt: now,
     events: [],
@@ -70,6 +70,7 @@ const core = makeSession({
   title: "Refactor auth middleware",
   cwd: "/Users/demo/Projects/atlas",
   status: "awaiting_approval",
+  runtime: "dsh",
 });
 event(core, { type: "user_message", text: "Refactor the auth middleware. Keep the public API stable and run the test suite." });
 event(core, { type: "assistant_delta", text: "I’ll trace the middleware and its call sites first, then make the smallest safe change." });
@@ -132,6 +133,7 @@ const ops = makeSession({
   title: "Rotate staging credentials",
   cwd: "/Users/demo/Infra/ops",
   status: "running",
+  runtime: "codex",
   model: '["deepseek-account","deepseek-v4-pro"]',
 });
 event(ops, { type: "user_message", text: "Rotate the staging deploy key and verify the pipeline." });
@@ -153,6 +155,7 @@ const notes = makeSession({
   title: "Design review notes",
   cwd: "/Users/demo/Notes",
   status: "idle",
+  runtime: "claude",
 });
 event(notes, { type: "user_message", text: "Summarize the design review and list the open questions." });
 event(notes, { type: "assistant_delta", text: "Three themes: navigation density, the empty-state story, and how approval risk is communicated." });
@@ -237,10 +240,12 @@ wss.on("connection", (ws) => {
 
       case "create_session": {
         const id = `session-${Math.random().toString(36).slice(2, 8)}`;
+        const runtime = message.runtime === "codex" || message.runtime === "claude" ? message.runtime : "dsh";
         const session = makeSession({
           id,
           title: "New session",
           cwd: message.cwd || "/Users/demo/Projects/atlas",
+          runtime,
         });
         sessions.set(id, session);
         subscribed = id;

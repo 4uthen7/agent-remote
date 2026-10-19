@@ -5,14 +5,18 @@
 | Component | Location | Responsibility |
 |---|---|---|
 | iOS app | `ios/AgentRemote` | Pairing, session list, timeline, approvals, model picker |
-| `agentd` | `agentd/src` | WebSocket API, token auth, session state, DSH lifecycle |
+| `agentd` | `agentd/src` | WebSocket API, token auth, runtime/session routing |
+| Runtime manager | `agentd/src/runtime` | Lazy adapter startup, session routing, normalized events |
 | DSH ACP adapter | `agentd/src/acp` | JSON-RPC over stdio, permission requests, tool-call correlation |
+| Codex adapter | `agentd/src/codex` | `codex app-server` JSON lines, thread/turn, approvals |
+| Claude adapter | `agentd/src/claude` | Claude Agent SDK `query()`, `canUseTool`, streaming |
 | DeepSeek Harness | external | Runs the agent with the generated `acp` profile |
+| Codex CLI | external | Runs `codex app-server` |
+| Claude Code | external | Runs the Claude Agent SDK's CLI process |
 
 ## Lifecycle
 
-1. `agentd` resolves the DSH runtime and starts `dsh --profile acp --patch <generated>`.
-2. The app connects to `ws://<host>:8787/ws` and sends:
+1. The app connects to `ws://<host>:8787/ws` and sends:
 
    ```json
    { "type": "hello", "token": "...", "deviceName": "iPhone" }
@@ -21,7 +25,10 @@
 3. `agentd` replies with `hello_ok` and the session summaries.
 4. `subscribe` returns a `snapshot` containing the session, events, pending approvals
    and config options.
-5. `prompt` starts a turn. `agentd` normalizes ACP notifications into:
+5. `create_session` includes a `runtime` (`dsh`, `codex`, or `claude`). The runtime
+   manager starts that adapter lazily and routes later `prompt`, `cancel`, `set_model`
+   and `close_session` calls to it.
+6. `prompt` starts a turn. The adapter normalizes its native events into:
 
    - `user_message`
    - `assistant_delta`
@@ -30,24 +37,25 @@
    - `usage`
    - `turn_end` / `error`
 
-6. `approve` resolves a pending permission request. The approval is one-shot and
+7. `approve` resolves a pending permission request. The approval is one-shot and
    correlated to the exact `toolCallId` and command that triggered it.
-7. `set_model` maps to `session/set_config_option`; `cancel` maps to
-   `session/cancel`; `close_session` closes the upstream session.
+8. `set_model` maps to the runtime's model switch; `cancel` interrupts the turn;
+   `close_session` closes the upstream session.
 
 ## Approval correlation
 
-ACP's `session/request_permission` contains the `toolCallId` and the allowed options,
-but not the command text. `agentd` keeps the preceding `tool_call` update keyed by
-`toolCallId` and joins it with the permission request. The iOS sheet therefore shows:
+Each adapter builds the same approval shape:
 
-- the exact command
-- the working directory
-- the model's justification
-- the requested sandbox (`danger-full-access` is highlighted)
+- **DSH** — ACP's `session/request_permission` contains the `toolCallId` and allowed
+  options, but not the command text. `agentd` joins the preceding `tool_call` update by
+  `toolCallId`.
+- **Codex** — `item/commandExecution/requestApproval` (or file-change approval) carries
+  the command, cwd, reason and item id. `agentd` replies with `accept` or `decline`.
+- **Claude** — the SDK's `canUseTool(toolName, input, options)` promise is parked until
+  the app answers; allow maps to `{behavior:"allow"}`, reject to `{behavior:"deny"}`.
 
-The allowed options are only `allow-once` and `reject-once`; there is no implicit
-"always allow".
+The iOS sheet therefore shows the exact command, working directory, model justification
+and requested sandbox. The options are one-shot; there is no implicit "always allow".
 
 ## WebSocket messages
 
@@ -58,7 +66,7 @@ The allowed options are only `allow-once` and `reject-once`; there is no implici
 | app → daemon | `list_sessions` | Refresh session list |
 | app → daemon | `subscribe` | Attach to a session |
 | daemon → app | `snapshot` | Session, events, approvals, config |
-| app → daemon | `create_session` | Create a DSH session at `cwd` |
+| app → daemon | `create_session` | Create a session at `cwd` with `runtime` |
 | app → daemon | `prompt` | Start a turn |
 | daemon → app | `event` | Normalized agent event |
 | daemon → app | `approval` | Permission request |
@@ -72,18 +80,33 @@ The allowed options are only `allow-once` and `reject-once`; there is no implici
 The canonical TypeScript types live in `agentd/src/types.ts`; the Swift mirrors are in
 `ios/AgentRemote/Models.swift`.
 
-## DSH profile
+## Runtime adapters
+
+### DSH
 
 `agentd` writes a small patch file under `~/.agent-remote` that selects the provider and
-default model, then starts:
-
-```text
-dsh --profile acp --patch ~/.agent-remote/dsh-acp.patch.yml
-```
+default model, then starts `dsh --profile acp --patch ~/.agent-remote/dsh-acp.patch.yml`
+when a DSH session is created.
 
 `DSH_PERMISSION_MODE` is forced to `workspace-write` so an inherited
 `danger-full-access` from the parent shell cannot silently auto-approve tool calls.
 The daemon uses the user's `~/.dsh` login and `$HOME` as the default allowed root.
+
+### Codex
+
+`codex app-server --listen stdio://` is started lazily. The adapter calls `initialize`,
+`model/list`, `thread/start`, `turn/start`, and `turn/interrupt`, maps
+`item/agentMessage/delta` and tool/command items to the normalized events, and parks
+approval server requests until the app answers. Codex uses the user's `~/.codex` login
+and configuration (including custom providers).
+
+### Claude
+
+The adapter uses `@anthropic-ai/claude-agent-sdk`'s `query()` per turn, resuming with
+the Claude session id. `includePartialMessages` supplies text/thinking deltas;
+`canUseTool` supplies approvals; `result` supplies usage and turn completion. It uses
+the Claude Code login (`~/.claude`) or `ANTHROPIC_API_KEY`. If neither is present, the
+session shows a login error without stopping the daemon.
 
 ## Security boundaries
 
@@ -95,15 +118,16 @@ The daemon uses the user's `~/.dsh` login and `$HOME` as the default allowed roo
 - The iOS app stores the token in Keychain; the daemon stores it in
   `~/.agent-remote/token` with user-only permissions.
 
-## Extending to Codex and Claude
+## Adding another runtime
 
-The app talks only to the normalized `agentd` protocol. New runtimes can be added as
-adapters that translate their native approval/turn events into the same messages:
+The app talks only to the normalized `agentd` protocol. A new runtime is an adapter in
+`agentd/src/<runtime>` that implements `RuntimeAdapter`:
 
-- **Codex** — `codex app-server --listen stdio://` and its `thread/start`,
-  `turn/start` and approval server requests.
-- **Claude** — `@anthropic-ai/claude-agent-sdk` with `canUseTool`, resume/fork and
-  `setModel`.
+- `start` / `dispose`
+- `newSession`, `resumeSession`, `closeSession`
+- `prompt`, `cancel`, `setModel`
+- `snapshot`, `listSessions`, `getSession`, `resolveApproval`
+- `session`, `event`, `approval`, `approval_resolved` and `config` events
 
-The iOS client does not need to change for a new runtime as long as the adapter
-preserves the session/event/approval shape.
+The runtime manager and iOS client do not need to change for a new adapter as long as
+it preserves the same session/event/approval shape.

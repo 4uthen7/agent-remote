@@ -1,6 +1,9 @@
 import qrcode from "qrcode-terminal";
 import { loadConfig } from "./config.js";
 import { DshAdapter } from "./acp/dsh.js";
+import { CodexAdapter } from "./codex/adapter.js";
+import { ClaudeAdapter } from "./claude/adapter.js";
+import { RuntimeManager } from "./runtime/manager.js";
 import { createAgentServer } from "./server.js";
 import { log, sleep } from "./util.js";
 
@@ -18,24 +21,43 @@ async function main(): Promise<void> {
   log(`DSH runtime: ${config.dshRuntime.description}`);
   log(`DSH profile: ${config.dshProfile} (provider=${config.dshProvider}, model=${config.dshModel})`);
   log(`Allowed roots: ${config.roots.join(", ")}`);
+  log("Runtimes: dsh, codex, claude (lazy)");
 
-  const adapter = new DshAdapter({
-    command: config.dshRuntime.command,
-    args: dshArgs,
-    env: {
-      ...process.env,
-      ...config.dshRuntime.env,
-      DSH_HOME: config.dshHome,
-      DSH_PROFILE: config.dshProfile,
-      // Never inherit a dangerous permission mode from the parent shell.
-      DSH_PERMISSION_MODE: "workspace-write",
+  const manager = new RuntimeManager({
+    dsh: () => {
+      if (config.dshRuntimeError) throw new Error(config.dshRuntimeError);
+      return new DshAdapter({
+        command: config.dshRuntime.command,
+        args: dshArgs,
+        env: {
+          ...process.env,
+          ...config.dshRuntime.env,
+          DSH_HOME: config.dshHome,
+          DSH_PROFILE: config.dshProfile,
+          // Never inherit a dangerous permission mode from the parent shell.
+          DSH_PERMISSION_MODE: "workspace-write",
+        },
+        logger: (line) => log(line),
+      });
     },
-    logger: (line) => log(line),
+    codex: () =>
+      new CodexAdapter({
+        command: config.codexBin,
+        logger: (line) => log(line),
+      }),
+    claude: () =>
+      new ClaudeAdapter({
+        model: config.claudeModel,
+        logger: (line) => log(line),
+      }),
   });
 
-  await adapter.start();
+  manager.on("exit", (info: unknown) => {
+    const record = typeof info === "object" && info !== null ? (info as Record<string, unknown>) : {};
+    log(`runtime exited: ${String(record.runtime ?? "unknown")} (${String(record.reason ?? "")})`);
+  });
 
-  const app = createAgentServer(config, adapter);
+  const app = createAgentServer(config, manager);
   await new Promise<void>((resolve, reject) => {
     app.server.once("error", reject);
     app.server.listen(config.port, config.bind, () => resolve());
@@ -64,20 +86,16 @@ async function main(): Promise<void> {
       log(`server close failed: ${error instanceof Error ? error.message : String(error)}`);
     }
     try {
-      await adapter.dispose();
+      await manager.dispose();
     } catch (error) {
-      log(`adapter dispose failed: ${error instanceof Error ? error.message : String(error)}`);
+      log(`runtime dispose failed: ${error instanceof Error ? error.message : String(error)}`);
     }
     process.exit(0);
   };
 
   process.on("SIGINT", () => void shutdown("SIGINT"));
   process.on("SIGTERM", () => void shutdown("SIGTERM"));
-
-  adapter.once("exit", () => {
-    log("DSH exited; agentd will stop so the service manager can restart it.");
-    void sleep(500).then(() => void shutdown("DSH exit"));
-  });
+  void sleep(0);
 }
 
 main().catch((error: unknown) => {

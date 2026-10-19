@@ -42,6 +42,18 @@ for **1 year** and is required for APNs/push later.
 The app uses no special entitlements, so a free Apple ID works. Push notifications are
 not part of this build.
 
+## Runtime logins
+
+The app can launch DeepSeek Harness, Codex, or Claude. Each runtime uses its own login:
+
+```bash
+dsh                      # DeepSeek Harness login (once)
+codex login status       # should show ChatGPT
+claude auth status       # should show loggedIn: true, or set ANTHROPIC_API_KEY
+```
+
+A missing login only affects that runtime; the session shows the error.
+
 ## Start agentd
 
 On the Mac:
@@ -87,6 +99,8 @@ AGENT_REMOTE_PUBLIC_URL="ws://$(tailscale ip -4):8787/ws" npm start
 | `Invalid token` | Re-scan the current QR, or compare with `cat ~/.agent-remote/token` |
 | Cannot connect | Same Wi-Fi? macOS firewall allowing Node? iOS Local Network permission on? |
 | `cwd` rejected | Use a directory under `$HOME` or add it to `AGENT_REMOTE_ROOTS` |
+| Claude says `Not logged in` | Run `claude auth login`, or set `ANTHROPIC_API_KEY` |
+| Codex says model not supported | Pick a model from the session model menu, or fix `~/.codex/config.toml` |
 | App stops after 7 days | Re-sign with Sideloadly/AltStore; keep AltServer running |
 | Sideloadly cannot see the iPhone | Unlock, trust the computer, enable Developer Mode |
 | `iOS 27` install issue | Update Sideloadly/AltStore/Xcode; check device support |

@@ -24,11 +24,13 @@ cyber/3D visual experiment is not part of this repository.
 
 ## Features
 
-- **Session control** — list, create, resume and close DeepSeek Harness sessions.
+- **Three runtimes** — choose **DeepSeek Harness**, **OpenAI Codex**, or **Claude Code**
+  per session from the same app.
+- **Session control** — list, create, resume and close sessions.
 - **Live output** — streamed assistant text, thinking, tool calls, command output and context usage.
 - **One-tap approvals** — review the exact command, working directory, justification and
   `danger-full-access` escalation before allowing it once.
-- **Model switching** — change the DSH model from the session screen.
+- **Model switching** — change the selected runtime's model from the session screen.
 - **Native iOS UI** — SwiftUI, grouped lists, large titles, SF Symbols, system light/dark,
   Japanese labels, and a chat layout that stays out of the way.
 - **Secure pairing** — QR code or URL + bearer token; the token is stored in the iOS Keychain.
@@ -42,28 +44,40 @@ cyber/3D visual experiment is not part of this repository.
 │ iPhone             │◀───────────────────────────────▶│ agentd             │
 │ SwiftUI            │                                 │ Node + TypeScript  │
 └────────────────────┘                                 └─────────┬──────────┘
-                                                                 │ stdio JSON-RPC
-                                                       ┌─────────▼──────────┐
-                                                       │ dsh acp            │
-                                                       │ DeepSeek Harness   │
-                                                       └────────────────────┘
+                                                                 │ normalized
+                                              ┌──────────────────┼──────────────────┐
+                                              │                  │                  │
+                                       ┌──────▼──────┐   ┌───────▼──────┐   ┌───────▼──────┐
+                                       │ dsh acp     │   │ codex        │   │ Claude Agent │
+                                       │ DeepSeek    │   │ app-server   │   │ SDK          │
+                                       └─────────────┘   └──────────────┘   └──────────────┘
 ```
 
-`agentd` starts `dsh` with the generated **ACP** profile, keeps the upstream process
-independent of any one client, and exposes a small normalized protocol to the app.
-The app never talks to DSH directly.
+`agentd` lazily starts the runtime selected for a session, keeps each upstream process
+independent of any one client, and exposes one normalized protocol to the app. The app
+never talks to a runtime directly.
+
+- **DSH** — generated ACP profile over stdio.
+- **Codex** — `codex app-server --listen stdio://`, with one-shot approvals.
+- **Claude** — `@anthropic-ai/claude-agent-sdk` with `canUseTool` mapped to the same
+  approval sheet.
 
 See [docs/architecture.md](docs/architecture.md) for the message flow and approval
 correlation details.
 
 ## Requirements
 
-- macOS with [DeepSeek Harness](https://github.com/deepseek-ai) installed and logged in
+- macOS with at least one runtime available:
+  - [DeepSeek Harness](https://github.com/deepseek-ai) installed and logged in
+  - **Codex CLI** logged in (`codex login status` shows ChatGPT)
+  - **Claude Code** logged in (`claude auth status`) or `ANTHROPIC_API_KEY`
 - Node.js 22+ (developed on Node 24)
 - Xcode 26+ and [XcodeGen](https://github.com/yonaskolb/XcodeGen) for the iOS app
 - An iPhone on the same LAN as the Mac, or both devices on a Tailscale tailnet
 
-Tested against DSH `0.2.1-rc.2` on macOS.
+Tested with DSH `0.2.1-rc.2`, Codex CLI `0.144.6`, and Claude Code `2.1.216` on macOS.
+Claude requires a Claude Code login or an API key; the app surfaces a clear error if
+authentication is missing.
 
 ## Quick start
 
@@ -79,7 +93,9 @@ npm start
 running. It uses:
 
 - `~/.dsh` for the DeepSeek Harness login
-- `~/.agent-remote` for the generated ACP patch and token
+- `~/.codex` for the Codex CLI login
+- `~/.claude` for the Claude Code login
+- `~/.agent-remote` for the bridge token and generated ACP patch
 - the **workspace-write** permission mode, so escalation requests still reach your phone
 
 ### 2. Build the iOS app
@@ -117,6 +133,12 @@ For off-LAN use, run both devices on Tailscale and use the tailnet IP:
 AGENT_REMOTE_PUBLIC_URL="ws://$(tailscale ip -4):8787/ws" npm start
 ```
 
+### 4. Create a session
+
+Tap the compose button and choose **DeepSeek Harness**, **Codex**, or **Claude Code**.
+The same timeline, model menu and approval sheet work for all three. If a runtime is
+not logged in, the session shows that runtime's error instead of failing the daemon.
+
 ## Security model
 
 - `agentd` authenticates every WebSocket connection with a bearer token.
@@ -138,7 +160,7 @@ See [SECURITY.md](SECURITY.md) for the threat model and reporting instructions.
 - The iOS app contains **no analytics, advertising or third-party SDKs**.
 - It connects only to the `agentd` URL you enter or scan. There is no vendor backend.
 - Prompts, files and model output stay between your iPhone, your Mac and the model
-  provider configured in DeepSeek Harness — the same provider you already use.
+  provider configured for the selected runtime — the same provider you already use.
 - Pairing tokens are stored in the iOS Keychain and in `~/.agent-remote/token` on the
   Mac; they are not part of this repository or the release IPA.
 
@@ -157,6 +179,8 @@ See [SECURITY.md](SECURITY.md) for the threat model and reporting instructions.
 | `DSH_PROVIDER` | `deepseek-account` | DSH provider |
 | `DSH_MODEL` | `deepseek-flash` | Default model |
 | `DSH_BIN` / `DSH_APP_PATH` | auto | Override the DSH runtime |
+| `CODEX_BIN` | `codex` | Codex CLI path |
+| `AGENT_REMOTE_CLAUDE_MODEL` | `sonnet` | Default Claude model alias |
 
 ## Development
 
@@ -185,10 +209,11 @@ approves one command that writes a temporary file.
 ## Status and roadmap
 
 - [x] DSH ACP adapter, streaming, approvals, model switching, resume
+- [x] Codex `app-server` adapter with command approvals
+- [x] Claude Agent SDK adapter with `canUseTool` approvals
+- [x] Runtime picker (DSH / Codex / Claude) and per-runtime model menus
 - [x] Native iOS client, QR pairing, Keychain, Tailscale-ready transport
 - [x] Clean Japanese UI, unsigned IPA packaging
-- [ ] Codex `app-server` adapter
-- [ ] Claude Agent SDK adapter
 - [ ] Application-level E2E + relay
 - [ ] APNs push notifications
 - [ ] App icon and App Store hardening
@@ -196,7 +221,7 @@ approves one command that writes a temporary file.
 ## Repository layout
 
 ```
-agentd/                 Node daemon (WebSocket + DSH ACP)
+agentd/                 Node daemon (WebSocket + DSH / Codex / Claude)
 ios/                    SwiftUI app (XcodeGen)
   AgentRemote/          clean UI + shared client
 scripts/build-ipa.sh    unsigned device IPA

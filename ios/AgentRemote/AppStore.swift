@@ -19,6 +19,7 @@ final class AppStore: ObservableObject {
     @AppStorage("serverURL") var serverURL: String = "ws://127.0.0.1:8787/ws"
     @Published var token: String = ""
     @AppStorage("lastCwd") var lastCwd: String = "~/Documents"
+    @AppStorage("selectedRuntime") var selectedRuntime: String = "dsh"
 
     private var client: AgentClient?
     private var pendingDemoCwd: String?
@@ -146,19 +147,21 @@ final class AppStore: ObservableObject {
         send(ClientMessage(type: "list_sessions"))
     }
 
-    func createSession(cwd: String) {
+    func createSession(cwd: String, runtime: String? = nil) {
         let trimmed = cwd.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else {
             lastError = "Enter a working directory."
             return
         }
+        let selected = runtime ?? selectedRuntime
+        selectedRuntime = selected
         lastCwd = trimmed
         currentSession = nil
         timeline = []
         approvals = []
         activeApproval = nil
         pendingOpenAfterCreate = true
-        send(ClientMessage(type: "create_session", cwd: trimmed))
+        send(ClientMessage(type: "create_session", cwd: trimmed, runtime: selected))
     }
 
     func select(_ session: SessionSummary) {

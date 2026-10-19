@@ -26,9 +26,12 @@ export interface AgentConfig {
   dshModel: string;
   dshPatchPath: string;
   dshRuntime: DshRuntime;
+  dshRuntimeError?: string;
+  codexBin: string;
+  claudeModel: string;
 }
 
-const VERSION = "0.1.0";
+const VERSION = "0.2.0";
 
 function ensureDir(dir: string): void {
   mkdirSync(dir, { recursive: true, mode: 0o700 });
@@ -153,6 +156,17 @@ export function loadConfig(): AgentConfig {
 
   const publicUrl =
     process.env.AGENT_REMOTE_PUBLIC_URL?.trim() || `ws://${lanAddress()}:${port}/ws`;
+  const codexBin = process.env.CODEX_BIN?.trim() || "codex";
+  const claudeModel = process.env.AGENT_REMOTE_CLAUDE_MODEL?.trim() || "sonnet";
+
+  let dshRuntime: DshRuntime;
+  let dshRuntimeError: string | undefined;
+  try {
+    dshRuntime = resolveDshRuntime();
+  } catch (error) {
+    dshRuntime = { command: "dsh", argsPrefix: [], env: {}, description: "unavailable" };
+    dshRuntimeError = error instanceof Error ? error.message : String(error);
+  }
 
   return {
     version: VERSION,
@@ -168,6 +182,9 @@ export function loadConfig(): AgentConfig {
     dshProvider,
     dshModel,
     dshPatchPath,
-    dshRuntime: resolveDshRuntime(),
+    dshRuntime,
+    dshRuntimeError,
+    codexBin,
+    claudeModel,
   };
 }

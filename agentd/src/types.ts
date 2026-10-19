@@ -1,4 +1,5 @@
 export type SessionStatus = "idle" | "running" | "awaiting_approval" | "error";
+export type RuntimeId = "dsh" | "codex" | "claude";
 
 export interface HostInfo {
   name: string;
@@ -11,7 +12,7 @@ export interface SessionSummary {
   title: string;
   cwd: string;
   status: SessionStatus;
-  runtime: "dsh";
+  runtime: RuntimeId;
   model?: string;
   createdAt: number;
   updatedAt: number;

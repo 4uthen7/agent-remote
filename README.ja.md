@@ -25,10 +25,11 @@ iPhone は Node 製の小さなデーモン `agentd` にトークン認証付き
 
 ## 機能
 
-- **セッション操作** — DeepSeek Harness のセッション一覧、作成、再開、終了
+- **3つのランタイム** — **DeepSeek Harness** / **OpenAI Codex** / **Claude Code** をセッションごとに選択
+- **セッション操作** — セッション一覧、作成、再開、終了
 - **リアルタイム出力** — アシスタントの文章、思考、ツール呼び出し、コマンド出力、コンテキスト使用率
 - **ワンタップ承認** — 実行コマンド、作業ディレクトリ、理由、`danger-full-access` 昇格を確認して一度だけ許可
-- **モデル切替** — セッション画面から DSH のモデルを変更
+- **モデル切替** — セッション画面から、選択中ランタイムのモデルを変更
 - **ネイティブ iOS UI** — SwiftUI、grouped list、Large Title、SF Symbols、システムのライト/ダーク、日本語ラベル
 - **安全なペアリング** — QR コードまたは URL + トークン。トークンは iOS の Keychain に保存
 - **LAN / Tailscale** — Mac 側に inbound ポートを開けずに、tailnet 経由で外部から接続
@@ -40,26 +41,35 @@ iPhone は Node 製の小さなデーモン `agentd` にトークン認証付き
 │ iPhone             │◀───────────────────────────────▶│ agentd             │
 │ SwiftUI            │                                 │ Node + TypeScript  │
 └────────────────────┘                                 └─────────┬──────────┘
-                                                                 │ stdio JSON-RPC
-                                                       ┌─────────▼──────────┐
-                                                       │ dsh acp            │
-                                                       │ DeepSeek Harness   │
-                                                       └────────────────────┘
+                                                                 │ 正規化イベント
+                                              ┌──────────────────┼──────────────────┐
+                                       ┌──────▼──────┐   ┌───────▼──────┐   ┌───────▼──────┐
+                                       │ dsh acp     │   │ codex        │   │ Claude Agent │
+                                       │ DeepSeek    │   │ app-server   │   │ SDK          │
+                                       └─────────────┘   └──────────────┘   └──────────────┘
 ```
 
-`agentd` が生成した **ACP** プロファイルで `dsh` を起動し、クライアントに依存しない
-upstream プロセスとして維持します。iPhone アプリが DSH に直接接続することはありません。
+`agentd` はセッションで選ばれたランタイムだけを遅延起動し、クライアントに依存しない
+upstream プロセスとして維持します。iPhone アプリは各ランタイムに直接接続しません。
+
+- **DSH** — 生成した ACP プロファイルを stdio で起動
+- **Codex** — `codex app-server --listen stdio://`。承認はワンショット
+- **Claude** — `@anthropic-ai/claude-agent-sdk` の `canUseTool` を同じ承認シートに変換
 
 メッセージフローと承認の相関処理は [docs/architecture.md](docs/architecture.md) を参照してください。
 
 ## 必要なもの
 
-- macOS にインストール・ログイン済みの [DeepSeek Harness](https://github.com/deepseek-ai)
+- macOS で、少なくとも1つのランタイムが利用可能:
+  - [DeepSeek Harness](https://github.com/deepseek-ai) がインストール・ログイン済み
+  - **Codex CLI** がログイン済み（`codex login status` が ChatGPT と表示）
+  - **Claude Code** がログイン済み（`claude auth status`）または `ANTHROPIC_API_KEY`
 - Node.js 22 以上（開発は Node 24）
 - Xcode 26 以上と [XcodeGen](https://github.com/yonaskolb/XcodeGen)
 - Mac と同じ LAN、または両方を Tailscale に接続した iPhone
 
-DSH `0.2.1-rc.2` / macOS で動作確認しています。
+DSH `0.2.1-rc.2`、Codex CLI `0.144.6`、Claude Code `2.1.216` / macOS で動作確認しています。
+Claude はログインまたは API キーが必要で、未認証の場合はアプリにエラーが表示されます。
 
 ## クイックスタート
 
@@ -74,7 +84,9 @@ npm start
 WebSocket URL、トークン、ペアリング QR が表示されます。プロセスは起動したままにします。
 
 - DSH のログインは `~/.dsh`
-- 生成される ACP パッチとトークンは `~/.agent-remote`
+- Codex のログインは `~/.codex`
+- Claude Code のログインは `~/.claude`
+- トークンと生成 ACP パッチは `~/.agent-remote`
 - 権限モードは **workspace-write**。サンドボックス昇格は必ず iPhone に承認要求が届きます
 
 ### 2. iOS アプリをビルド
@@ -112,6 +124,12 @@ LAN 外から使う場合は、Mac と iPhone の両方を Tailscale に入れ�
 AGENT_REMOTE_PUBLIC_URL="ws://$(tailscale ip -4):8787/ws" npm start
 ```
 
+### 4. セッションを作成
+
+ペアリング後に右上の作成ボタンを押し、**DeepSeek Harness / Codex / Claude Code** を選びます。
+タイムライン、モデルメニュー、承認シートは3つとも同じUIです。ランタイムが未ログインの
+場合は、そのランタイムのエラーだけが表示され、agentd 全体は止まりません。
+
 ## セキュリティ
 
 - `agentd` はすべての WebSocket 接続を bearer token で認証します
@@ -131,7 +149,7 @@ AGENT_REMOTE_PUBLIC_URL="ws://$(tailscale ip -4):8787/ws" npm start
 
 - iOS アプリには **解析・広告・第三者 SDK は入っていません**
 - 接続先は、あなたが入力または QR で指定した `agentd` だけです。ベンダーのサーバーはありません
-- プロンプト、ファイル、モデル出力は、iPhone・Mac・DeepSeek Harness に設定したモデル提供元の間だけを流れます
+- プロンプト、ファイル、モデル出力は、iPhone・Mac・選択中ランタイムのモデル提供元の間だけを流れます
 - ペアリング用トークンは iOS の Keychain と Mac の `~/.agent-remote/token` に保存され、このリポジトリや Release IPA には含まれません
 
 ## 設定
@@ -149,6 +167,8 @@ AGENT_REMOTE_PUBLIC_URL="ws://$(tailscale ip -4):8787/ws" npm start
 | `DSH_PROVIDER` | `deepseek-account` | DSH プロバイダ |
 | `DSH_MODEL` | `deepseek-flash` | デフォルトモデル |
 | `DSH_BIN` / `DSH_APP_PATH` | 自動 | DSH ランタイムの明示指定 |
+| `CODEX_BIN` | `codex` | Codex CLI のパス |
+| `AGENT_REMOTE_CLAUDE_MODEL` | `sonnet` | Claude のデフォルトモデル |
 
 ## 開発
 
@@ -175,10 +195,11 @@ node test/smoke.mjs
 ## ステータス / ロードマップ
 
 - [x] DSH ACP アダプタ、ストリーミング、承認、モデル切替、resume
+- [x] Codex `app-server` アダプタ（コマンド承認）
+- [x] Claude Agent SDK アダプタ（`canUseTool` 承認）
+- [x] ランタイム選択（DSH / Codex / Claude）とランタイム別モデルメニュー
 - [x] ネイティブ iOS クライアント、QR ペアリング、Keychain、Tailscale 対応
 - [x] 日本語クリーン UI、署名なし IPA
-- [ ] Codex `app-server` アダプタ
-- [ ] Claude Agent SDK アダプタ
 - [ ] アプリ層 E2E + relay
 - [ ] APNs プッシュ通知
 - [ ] アプリアイコン / App Store 向け hardening
@@ -186,7 +207,7 @@ node test/smoke.mjs
 ## リポジトリ構成
 
 ```
-agentd/                 Node デーモン（WebSocket + DSH ACP）
+agentd/                 Node デーモン（WebSocket + DSH / Codex / Claude）
 ios/                    SwiftUI アプリ（XcodeGen）
   AgentRemote/          クリーン UI + 共有クライアント
 scripts/build-ipa.sh    署名なし実機 IPA

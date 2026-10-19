@@ -83,6 +83,10 @@ struct CleanTimelineView: View {
                     color: CleanText.statusColor(session?.status ?? "idle")
                 )
 
+                Text(CleanText.runtime(session?.runtime ?? "dsh"))
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(CleanText.runtimeColor(session?.runtime ?? "dsh"))
+
                 Text(CleanText.modelName(session?.model))
                     .font(.caption)
                     .foregroundStyle(.secondary)

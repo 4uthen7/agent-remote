@@ -28,6 +28,14 @@ struct CleanSettingsView: View {
                         .font(.system(.subheadline, design: .monospaced))
                 }
 
+                Section("ランタイム") {
+                    Picker("デフォルト", selection: $store.selectedRuntime) {
+                        Text("DeepSeek Harness").tag("dsh")
+                        Text("Codex").tag("codex")
+                        Text("Claude Code").tag("claude")
+                    }
+                }
+
                 Section("状態") {
                     HStack {
                         Circle()

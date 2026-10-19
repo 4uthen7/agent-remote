@@ -39,6 +39,30 @@ struct SessionSummary: Codable, Identifiable, Equatable {
         model ?? "default"
     }
 
+    var runtimeLabel: String {
+        switch runtime {
+        case "codex": return "Codex"
+        case "claude": return "Claude"
+        default: return "DSH"
+        }
+    }
+
+    var runtimeColor: Color {
+        switch runtime {
+        case "codex": return .green
+        case "claude": return .orange
+        default: return .blue
+        }
+    }
+
+    var runtimeIcon: String {
+        switch runtime {
+        case "codex": return "chevron.left.forwardslash.chevron.right"
+        case "claude": return "sparkles"
+        default: return "bolt.horizontal.fill"
+        }
+    }
+
     var folderName: String {
         let trimmed = cwd.hasSuffix("/") ? String(cwd.dropLast()) : cwd
         return (trimmed as NSString).lastPathComponent
@@ -176,6 +200,7 @@ struct ClientMessage: Encodable {
     var token: String?
     var deviceName: String?
     var cwd: String?
+    var runtime: String?
     var sessionId: String?
     var text: String?
     var approvalId: String?

@@ -33,7 +33,7 @@ struct CleanConnectView: View {
                             .foregroundStyle(Color(uiColor: .systemBackground))
                     }
 
-                    Text("DeepSeek Harness をリモート操作")
+                    Text("DSH・Codex・Claude をリモート操作")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
