@@ -204,7 +204,7 @@ node test/smoke.mjs
 - [x] アプリアイコン（黒いターミナルマーク）
 - [ ] アプリ層 E2E + relay
 - [ ] APNs プッシュ通知
-- [ ] アプリアイコン / App Store 向け hardening
+- [ ] App Store 向け hardening
 
 ## リポジトリ構成
 
