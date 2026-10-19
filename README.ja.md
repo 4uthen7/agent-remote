@@ -58,7 +58,7 @@ Android は Jetpack Compose で実装しています。以前のサイバー調�
 ```
 
 `agentd` はセッションで選ばれたランタイムだけを遅延起動し、クライアントに依存しない
-upstream プロセスとして維持します。iPhone アプリは各ランタイムに直接接続しません。
+upstream プロセスとして維持します。iPhone / Android アプリは各ランタイムに直接接続しません。
 
 - **DSH** — 生成した ACP プロファイルを stdio で起動
 - **Codex** — `codex app-server --listen stdio://`。承認はワンショット
@@ -155,7 +155,7 @@ AGENT_REMOTE_PUBLIC_URL="ws://$(tailscale ip -4):8787/ws" npm start
 ## セキュリティ
 
 - `agentd` はすべての WebSocket 接続を bearer token で認証します
-- トークンは iOS Keychain（`AfterFirstUnlockThisDeviceOnly`）に保存されます
+- トークンは iOS Keychain（`AfterFirstUnlockThisDeviceOnly`）または Android Keystore 暗号化領域に保存されます
 - 承認は **一度だけ** 有効で、実際に要求したツール呼び出し・コマンドに紐づきます。
   `danger-full-access` は明示表示され、自動承認されません
 - `agentd` はデフォルトで `0.0.0.0:8787` をリッスンします。インターネットに直接公開せず、
@@ -169,10 +169,10 @@ AGENT_REMOTE_PUBLIC_URL="ws://$(tailscale ip -4):8787/ws" npm start
 
 ## プライバシー
 
-- iOS アプリには **解析・広告・第三者 SDK は入っていません**
+- iOS / Android アプリには **解析・広告・第三者 SDK は入っていません**
 - 接続先は、あなたが入力または QR で指定した `agentd` だけです。ベンダーのサーバーはありません
-- プロンプト、ファイル、モデル出力は、iPhone・Mac・選択中ランタイムのモデル提供元の間だけを流れます
-- ペアリング用トークンは iOS の Keychain と Mac の `~/.agent-remote/token` に保存され、このリポジトリや Release IPA には含まれません
+- プロンプト、ファイル、モデル出力は、スマートフォン・Mac・選択中ランタイムのモデル提供元の間だけを流れます
+- ペアリング用トークンは iOS の Keychain / Android Keystore と Mac の `~/.agent-remote/token` に保存され、このリポジトリや Release には含まれません
 
 ## 設定
 

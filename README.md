@@ -150,7 +150,7 @@ Manual pairing also works:
 - URL: the LAN URL printed by agentd, e.g. `ws://192.168.1.10:8787/ws`
 - Token: `cat ~/.agent-remote/token`
 
-Do **not** use `127.0.0.1` on the iPhone — that points at the phone itself.
+Do **not** use `127.0.0.1` on the phone — that points at the phone itself.
 For off-LAN use, run both devices on Tailscale and use the tailnet IP:
 
 ```bash
@@ -166,7 +166,8 @@ not logged in, the session shows that runtime's error instead of failing the dae
 ## Security model
 
 - `agentd` authenticates every WebSocket connection with a bearer token.
-- The token is stored in the iOS Keychain (`AfterFirstUnlockThisDeviceOnly`).
+- The token is stored in the iOS Keychain (`AfterFirstUnlockThisDeviceOnly`) or
+  Android Keystore-encrypted preferences.
 - Approvals are **one-shot** and correlated to the exact tool call and command that
   requested them. `danger-full-access` is shown explicitly and never auto-approved.
 - The daemon binds `0.0.0.0:8787` by default so a phone on the LAN can reach it. Do not
@@ -181,11 +182,12 @@ See [SECURITY.md](SECURITY.md) for the threat model and reporting instructions.
 
 ## Privacy
 
-- The iOS app contains **no analytics, advertising or third-party SDKs**.
+- The iOS and Android apps contain **no analytics, advertising or third-party SDKs**.
 - It connects only to the `agentd` URL you enter or scan. There is no vendor backend.
-- Prompts, files and model output stay between your iPhone, your Mac and the model
+- Prompts, files and model output stay between your phone, your Mac and the model
   provider configured for the selected runtime — the same provider you already use.
-- Pairing tokens are stored in the iOS Keychain and in `~/.agent-remote/token` on the
+- Pairing tokens are stored in the iOS Keychain / Android Keystore and in
+  `~/.agent-remote/token` on the
   Mac; they are not part of this repository or the release IPA.
 
 ## Configuration
