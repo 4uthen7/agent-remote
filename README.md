@@ -23,7 +23,7 @@ The easiest way to run the host is the **Agent Remote Desktop** app for Windows/
 It bundles Node, `agentd` and its dependencies, detects installed DSH/Codex/Claude, starts
 the server and shows the pairing QR. No separate Node install is needed on the PC.
 
-- Download `AgentRemote-Setup-<version>.exe` or `Agent Remote-<version>-arm64.dmg` from
+- Download `AgentRemote-Setup-<version>.exe` or `Agent.Remote-<version>-arm64.dmg` from
   [Releases](https://github.com/4uthen7/agent-remote/releases).
 - Windows/macOS may warn because the build is unsigned; use **More info → Run anyway** /
   **right-click → Open**.

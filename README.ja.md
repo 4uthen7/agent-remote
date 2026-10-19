@@ -26,7 +26,7 @@ Node、`agentd`、依存関係を同梱し、PCに入っているDSH / Codex / C
 サーバーを起動、ペアリングQRを表示します。PC側にNode.jsを入れる必要はありません。
 
 - [Releases](https://github.com/4uthen7/agent-remote/releases) から
-  `AgentRemote-Setup-<version>.exe` または `Agent Remote-<version>-arm64.dmg` を取得
+  `AgentRemote-Setup-<version>.exe` または `Agent.Remote-<version>-arm64.dmg` を取得
 - 署名なしのため、Windowsは「詳細情報 → 実行」、macOSは右クリック→「開く」
 - 操作できるのはDSH / Codex / Claude Codeです。Cursor、VS Code、Windsurf、Aider、
   Gemini CLI、OpenCodeは検出のみ（アダプタ未対応）
