@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Agent Remote</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="shell">
+    <header class="topbar">
+      <div class="brand">
+        <div class="logo">&gt;_</div>
+        <div>
+          <div class="brand-title">Agent Remote</div>
+          <div class="brand-sub">Desktop host / DSH · Codex · Claude</div>
+        </div>
+      </div>
+      <div class="top-actions">
+        <span class="badge">Node.js 不要</span>
+        <span id="status-pill" class="status status-stopped">停止中</span>
+      </div>
+    </header>
+
+    <main class="layout">
+      <section class="card connect-card">
+        <div class="card-head">
+          <div>
+            <h1>スマホで接続</h1>
+            <p class="muted">QRを読み取るだけで、このPCのコーディングツールを操作できます。</p>
+          </div>
+          <button id="start-stop" class="primary">起動</button>
+        </div>
+
+        <div class="qr-wrap">
+          <img id="qr" alt="ペアリングQR" />
+          <div id="qr-placeholder" class="qr-placeholder">
+            <div class="spinner"></div>
+            <span>ホストを起動しています…</span>
+          </div>
+        </div>
+
+        <div id="error" class="error hidden"></div>
+
+        <div class="field-row">
+          <div class="field grow">
+            <label>ホストURL</label>
+            <div class="copy-row">
+              <code id="host-url">—</code>
+              <button id="copy-url" class="ghost small">コピー</button>
+            </div>
+          </div>
+          <div class="field grow">
+            <label>トークン</label>
+            <div class="copy-row">
+              <code id="token" class="secret">—</code>
+              <button id="copy-token" class="ghost small">コピー</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="hint">
+          <strong>接続できませんか？</strong>
+          Android/iPhoneをPCと同じWi-Fiにつなぐか、Tailscaleを使ってください。
+          QRのIPがVPNや仮想アダプタの場合は、下のネットワークを変更して再起動します。
+        </div>
+      </section>
+
+      <section class="side">
+        <div class="card">
+          <div class="card-head">
+            <div>
+              <h2>検出したツール</h2>
+              <p class="muted">インストール済みのCLIを自動検出します。認証は各ツールで済ませてください。</p>
+            </div>
+            <button id="refresh-tools" class="ghost">再検出</button>
+          </div>
+          <div id="tools" class="tool-list"></div>
+          <div id="other-tools-wrap" class="other-tools hidden">
+            <div class="section-label">その他（検出のみ）</div>
+            <div id="other-tools" class="chips"></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head">
+            <div>
+              <h2>ホスト設定</h2>
+              <p class="muted">変更するとホストを再起動します。</p>
+            </div>
+          </div>
+          <form id="settings-form" class="settings">
+            <div class="field-row">
+              <div class="field">
+                <label for="ip">ネットワーク</label>
+                <select id="ip"></select>
+              </div>
+              <div class="field">
+                <label for="port">ポート</label>
+                <input id="port" type="number" min="1" max="65535" />
+              </div>
+            </div>
+            <div class="field">
+              <label for="roots">許可フォルダ（複数はOSの区切り文字）</label>
+              <div class="copy-row">
+                <input id="roots" type="text" />
+                <button id="choose-folder" type="button" class="ghost small">選択</button>
+              </div>
+            </div>
+
+            <details class="advanced">
+              <summary>暗号化クラウド同期（任意）</summary>
+              <p class="muted small">同じリレー・ルーム・キーを持つPC間で履歴を共有します。キーは公開しないでください。</p>
+              <div class="field">
+                <label for="syncUrl">リレーURL</label>
+                <input id="syncUrl" type="text" placeholder="https://sync.example.com" />
+              </div>
+              <div class="field-row">
+                <div class="field">
+                  <label for="syncRoom">ルーム</label>
+                  <input id="syncRoom" type="text" placeholder="my-team" />
+                </div>
+                <div class="field">
+                  <label for="syncToken">リレートークン</label>
+                  <input id="syncToken" type="password" />
+                </div>
+              </div>
+              <div class="field">
+                <label for="syncKey">ルームキー</label>
+                <input id="syncKey" type="password" />
+              </div>
+            </details>
+
+            <div class="actions">
+              <button type="submit" class="primary">保存して再起動</button>
+              <button type="button" id="open-data" class="ghost">データフォルダ</button>
+              <button type="button" id="open-docs" class="ghost">ヘルプ</button>
+            </div>
+          </form>
+        </div>
+      </section>
+
+      <section class="card logs-card">
+        <div class="card-head">
+          <div>
+            <h2>ログ</h2>
+            <p class="muted">agentd とランタイムの出力</p>
+          </div>
+          <button id="clear-logs" class="ghost">クリア</button>
+        </div>
+        <pre id="logs" class="logs"></pre>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <span>Agent Remote Desktop <span id="version">—</span></span>
+      <span>プロトコル互換: iOS 0.4.0 / Android 0.5.0</span>
+    </footer>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>

@@ -19,6 +19,22 @@ WebSocket で接続し、エージェントの出力をリアルタイムで表�
 Android は Jetpack Compose で実装しています。以前のサイバー調・3D の実験 UI は
 このリポジトリには含まれていません。
 
+## デスクトップホストアプリ（Node.js不要）
+
+もっとも簡単なホスト起動方法は **Agent Remote Desktop**（Windows / macOS）です。
+Node、`agentd`、依存関係を同梱し、PCに入っているDSH / Codex / Claudeを検出して
+サーバーを起動、ペアリングQRを表示します。PC側にNode.jsを入れる必要はありません。
+
+- [Releases](https://github.com/4uthen7/agent-remote/releases) から
+  `AgentRemote-Setup-<version>.exe` または `Agent Remote-<version>-arm64.dmg` を取得
+- 署名なしのため、Windowsは「詳細情報 → 実行」、macOSは右クリック→「開く」
+- 操作できるのはDSH / Codex / Claude Codeです。Cursor、VS Code、Windsurf、Aider、
+  Gemini CLI、OpenCodeは検出のみ（アダプタ未対応）
+- コーディングCLI自体の自動インストール・認証は行いません。各ツールを通常どおり
+  インストールして一度ログインしてください。アプリ本体はNode/npm不要です
+
+ビルド方法と制限: [desktop/README.md](desktop/README.md)
+
 | セッション | タイムライン |
 |---|---|
 | ![Sessions](docs/screenshots/clean-sessions.png) | ![Timeline](docs/screenshots/clean-timeline.png) |

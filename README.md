@@ -17,6 +17,24 @@ The public apps use the **clean native UI** with Japanese labels: SwiftUI on iOS
 Jetpack Compose on Android. The earlier cyber/3D visual experiment is not part of this
 repository.
 
+## Desktop host app (no Node.js required)
+
+The easiest way to run the host is the **Agent Remote Desktop** app for Windows/macOS.
+It bundles Node, `agentd` and its dependencies, detects installed DSH/Codex/Claude, starts
+the server and shows the pairing QR. No separate Node install is needed on the PC.
+
+- Download `AgentRemote-Setup-<version>.exe` or `Agent Remote-<version>-arm64.dmg` from
+  [Releases](https://github.com/4uthen7/agent-remote/releases).
+- Windows/macOS may warn because the build is unsigned; use **More info → Run anyway** /
+  **right-click → Open**.
+- The desktop app controls DSH, Codex and Claude Code. It also detects Cursor, VS Code,
+  Windsurf, Aider, Gemini CLI and OpenCode for inventory, but those tools do not yet have
+  agentd adapters.
+- Coding CLIs are not silently installed or authenticated; install them normally once.
+  The app itself needs no Node/npm.
+
+Build instructions and limitations: [desktop/README.md](desktop/README.md).
+
 | Sessions | Timeline |
 |---|---|
 | ![Sessions](docs/screenshots/clean-sessions.png) | ![Timeline](docs/screenshots/clean-timeline.png) |
@@ -35,6 +53,8 @@ repository.
 
 ## Features
 
+- **Desktop one-click host** — Windows `.exe` / macOS `.dmg` with Node and agentd
+  bundled, tool detection and a QR on launch; the phone apps are unchanged.
 - **Three runtimes** — choose **DeepSeek Harness**, **OpenAI Codex**, or **Claude Code**
   per session from the same app.
 - **Session control** — list, create, resume and close sessions.

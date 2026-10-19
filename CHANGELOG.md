@@ -4,6 +4,17 @@ All notable changes are published as Git tags and GitHub Releases.
 The format follows a simple semantic versioning scheme; app and daemon versions can differ
 within one release.
 
+## v1.0.0 — 2026-10-19
+
+- **Agent Remote Desktop** for Windows and macOS. Electron + bundled agentd and
+  production dependencies; the target PC needs no Node.js/npm.
+- Detects DSH, Codex and Claude Code (plus Cursor, VS Code, Windsurf, Aider, Gemini CLI
+  and OpenCode for inventory), starts the host, and shows the pairing QR.
+- Optional port/interface/allowed-folder settings and encrypted relay sync.
+- Phone apps are unchanged and protocol-compatible (iOS 0.4.0 / Android 0.5.0).
+- agentd **0.6.0** unchanged.
+- Desktop builds are unsigned; Windows x64/arm64 and macOS arm64 artifacts.
+
 ## v0.7.0 — 2026-10-19
 
 - **Encrypted relay sync**: `npm run sync-server` serves room-scoped archives as

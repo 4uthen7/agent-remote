@@ -32,6 +32,11 @@ authenticates clients with `AGENT_REMOTE_SYNC_TOKEN`. The room key
 (`AGENT_REMOTE_SYNC_KEY`) is separate and must never be committed. Anyone with both the
 relay token and the room key can read the shared archive.
 
+The desktop host bundles its own Node runtime and agentd. It stores the bearer token in
+the app user-data directory with mode `0600`. The desktop UI shows the token in the QR;
+treat the screen and QR as secrets. Unsigned macOS/Windows builds may require an
+explicit first-run confirmation.
+
 The Android client is distributed as a **debug build** for sideloading and inspection.
 It stores the bearer token with Android Keystore-encrypted preferences and permits
 cleartext `ws://` for LAN/Tailscale development. Do not treat the debug APK as a

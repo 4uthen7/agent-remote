@@ -21,3 +21,6 @@ ios/AgentRemote.xcodeproj/
 ios/AgentRemote/Info.plist
 *.xcresult
 *.ipa
+desktop/node_modules/
+desktop/release/
+desktop/resources/agentd/

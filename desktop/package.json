@@ -1,0 +1,80 @@
+{
+  "name": "@agent-remote/desktop",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Agent Remote desktop host: bundles agentd, detects coding tools and shows a pairing QR.",
+  "main": "main.js",
+  "author": "4uthen7",
+  "license": "MIT",
+  "scripts": {
+    "prepare-agentd": "node scripts/prepare-agentd.mjs",
+    "start": "npm run prepare-agentd && node scripts/start-electron.cjs",
+    "dist:mac": "npm run prepare-agentd && electron-builder --mac dmg zip",
+    "dist:win": "npm run prepare-agentd && electron-builder --win nsis portable",
+    "dist:linux": "npm run prepare-agentd && electron-builder --linux AppImage",
+    "dist:win:x64": "npm run prepare-agentd && electron-builder --win nsis portable --x64",
+    "dist:win:arm64": "npm run prepare-agentd && electron-builder --win nsis portable --arm64"
+  },
+  "dependencies": {
+    "qrcode": "^1.5.4",
+    "tree-kill": "^1.2.2"
+  },
+  "devDependencies": {
+    "electron": "^37.2.0",
+    "electron-builder": "^26.0.12"
+  },
+  "build": {
+    "appId": "dev.fouruthent.agentremote.host",
+    "productName": "Agent Remote",
+    "copyright": "Copyright \u00a9 2026 4uthen7",
+    "asar": true,
+    "directories": {
+      "output": "release",
+      "buildResources": "build"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "renderer/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "resources/agentd",
+        "to": "agentd",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ],
+    "mac": {
+      "category": "public.app-category.developer-tools",
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "identity": null,
+      "icon": "icon.png"
+    },
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ],
+      "artifactName": "AgentRemote-${version}-${arch}.${ext}",
+      "icon": "icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "artifactName": "AgentRemote-Setup-${version}.${ext}"
+    },
+    "linux": {
+      "target": [
+        "AppImage"
+      ],
+      "category": "Development"
+    },
+    "afterPack": "scripts/after-pack.cjs"
+  }
+}

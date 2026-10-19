@@ -1,0 +1,55 @@
+name: desktop
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v1.*"
+
+jobs:
+  macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Agentd dependencies
+        working-directory: agentd
+        run: npm ci
+      - name: Desktop dependencies
+        working-directory: desktop
+        run: npm ci
+      - name: Build macOS app
+        working-directory: desktop
+        run: npm run dist:mac
+      - uses: actions/upload-artifact@v4
+        with:
+          name: agent-remote-macos
+          path: |
+            desktop/release/*.dmg
+            desktop/release/*-mac.zip
+          if-no-files-found: error
+
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Agentd dependencies
+        working-directory: agentd
+        run: npm ci
+      - name: Desktop dependencies
+        working-directory: desktop
+        run: npm ci
+      - name: Build Windows app
+        working-directory: desktop
+        run: npm run dist:win
+      - uses: actions/upload-artifact@v4
+        with:
+          name: agent-remote-windows
+          path: |
+            desktop/release/*.exe
+          if-no-files-found: error
