@@ -27,6 +27,7 @@ export class SessionStore {
   constructor(
     private readonly dir: string,
     private readonly hostName: string,
+    private readonly onChange?: () => void,
   ) {
     mkdirSync(dir, { recursive: true, mode: 0o700 });
     this.load();
@@ -80,6 +81,7 @@ export class SessionStore {
     };
     this.records.set(key, stored);
     this.write(stored);
+    this.onChange?.();
   }
 
   archive(record: SessionRecord): void {
@@ -92,6 +94,7 @@ export class SessionStore {
     record.archivedAt = 0;
     this.records.set(this.key(runtime, id), record);
     this.write(record);
+    this.onChange?.();
   }
 
   get(runtime: RuntimeId, id: string): ArchivedSession | undefined;
@@ -135,6 +138,40 @@ export class SessionStore {
       originHost: record.originHost,
       lastMessage,
     };
+  }
+
+  /**
+   * Merge another host's archive. Newer records win; a locally live session is
+   * never replaced by an older archived copy.
+   */
+  importRecords(records: ArchivedSession[]): number {
+    let imported = 0;
+    for (const raw of records) {
+      if (!raw || typeof raw.id !== "string" || typeof raw.runtime !== "string") continue;
+      const incoming: ArchivedSession = {
+        ...raw,
+        events: Array.isArray(raw.events) ? raw.events.slice(-MAX_EVENTS) : [],
+        pendingApprovals: [],
+        configOptions: Array.isArray(raw.configOptions) ? raw.configOptions : [],
+        archivedAt: raw.archivedAt || Date.now(),
+        originHost: raw.originHost || this.hostName,
+        status: "idle",
+      };
+      const key = this.key(incoming.runtime, incoming.id);
+      const existing = this.records.get(key);
+      if (
+        existing &&
+        (existing.updatedAt > incoming.updatedAt ||
+          (existing.updatedAt === incoming.updatedAt && existing.archivedAt === 0))
+      ) {
+        continue;
+      }
+      this.records.set(key, incoming);
+      this.write(incoming);
+      imported += 1;
+    }
+    if (imported > 0) this.onChange?.();
+    return imported;
   }
 
   snapshot(record: ArchivedSession): RuntimeSnapshot {

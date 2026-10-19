@@ -5,6 +5,7 @@ import { CodexAdapter } from "./codex/adapter.js";
 import { ClaudeAdapter } from "./claude/adapter.js";
 import { RuntimeManager } from "./runtime/manager.js";
 import { SessionStore } from "./session-store.js";
+import { SyncClient } from "./sync-client.js";
 import { createAgentServer } from "./server.js";
 import { lanAddresses, log, platformName, sleep } from "./util.js";
 
@@ -26,7 +27,12 @@ async function main(): Promise<void> {
   log(`Session archive: ${config.syncDir}`);
   log("Runtimes: dsh, codex, claude (lazy)");
 
-  const sessionStore = new SessionStore(config.syncDir, config.hostName);
+  let syncClient: SyncClient | undefined;
+  const sessionStore = new SessionStore(
+    config.syncDir,
+    config.hostName,
+    () => syncClient?.notifyLocalChange(),
+  );
   const manager = new RuntimeManager({
     dsh: () => {
       if (config.dshRuntimeError) throw new Error(config.dshRuntimeError);
@@ -62,6 +68,20 @@ async function main(): Promise<void> {
   });
 
   const app = createAgentServer(config, manager);
+  if (config.syncUrl && config.syncKey) {
+    syncClient = new SyncClient(
+      {
+        url: config.syncUrl,
+        room: config.syncRoom ?? "default",
+        key: config.syncKey,
+        token: config.syncToken,
+        onMerged: () => app.broadcastSessions(),
+      },
+      sessionStore,
+    );
+    await syncClient.start();
+    log(`Cloud sync: ${config.syncUrl} room=${config.syncRoom ?? "default"}`);
+  }
   await new Promise<void>((resolve, reject) => {
     app.server.once("error", reject);
     app.server.listen(config.port, config.bind, () => resolve());
@@ -94,6 +114,14 @@ async function main(): Promise<void> {
     if (shuttingDown) return;
     shuttingDown = true;
     log(`Received ${signal}; shutting down...`);
+    if (syncClient) {
+      try {
+        await syncClient.push();
+      } catch {
+        // Best-effort final sync.
+      }
+      syncClient.stop();
+    }
     try {
       await app.close();
     } catch (error) {

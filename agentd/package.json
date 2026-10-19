@@ -1,6 +1,6 @@
 {
   "name": "@agent-remote/agentd",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "private": true,
   "type": "module",
   "description": "Cross-platform host daemon for Agent Remote: drives DSH, Codex and Claude and exposes a mobile-friendly WebSocket API.",
@@ -10,7 +10,9 @@
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test:platform": "tsx test/platform-smoke.ts",
-    "test:archive": "tsx test/session-store.ts"
+    "test:archive": "tsx test/session-store.ts",
+    "sync-server": "tsx src/sync-server.ts",
+    "test:sync": "tsx test/sync.ts"
   },
   "dependencies": {
     "@anthropic-ai/claude-agent-sdk": "^0.3.303",

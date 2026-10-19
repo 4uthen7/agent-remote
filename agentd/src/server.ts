@@ -23,6 +23,7 @@ export interface AgentServer {
   server: http.Server;
   close: () => Promise<void>;
   sessionCount: () => number;
+  broadcastSessions: () => void;
 }
 
 function normalizeRuntime(value: unknown): RuntimeId {
@@ -349,5 +350,6 @@ export function createAgentServer(config: AgentConfig, manager: RuntimeManager):
     server,
     close,
     sessionCount: () => manager.listSessions().length,
+    broadcastSessions: () => sendSessionList(),
   };
 }

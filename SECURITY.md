@@ -25,6 +25,13 @@ PBKDF2-HMAC-SHA256 hash (120,000 iterations), in iOS Keychain or Android app-pri
 preferences. It does not change the WebSocket token's Keychain/Keystore storage.
 There is no password recovery; uninstalling the app clears the lock and local token.
 
+Session archives under `AGENT_REMOTE_SYNC_DIR` contain prompts, tool output and directory
+paths. If that directory is cloud-synced, protect it with the cloud account. Relay sync
+encrypts the archive with AES-256-GCM before upload; the relay stores only ciphertext and
+authenticates clients with `AGENT_REMOTE_SYNC_TOKEN`. The room key
+(`AGENT_REMOTE_SYNC_KEY`) is separate and must never be committed. Anyone with both the
+relay token and the room key can read the shared archive.
+
 The Android client is distributed as a **debug build** for sideloading and inspection.
 It stores the bearer token with Android Keystore-encrypted preferences and permits
 cleartext `ws://` for LAN/Tailscale development. Do not treat the debug APK as a
@@ -36,6 +43,7 @@ Assets:
 - the DSH login and `~/.dsh`
 - the files the agent can read/write
 - approval decisions
+- session archives, the relay token, and the room encryption key
 
 Trust boundaries:
 
@@ -51,9 +59,12 @@ Trust boundaries:
 - Treat the pairing QR and token as secrets. Rotate by deleting
   `~/.agent-remote/token` and restarting `agentd`.
 - Keep the iOS token in Keychain; do not paste it into screenshots or issues.
+- Put the sync relay behind HTTPS, require `AGENT_REMOTE_SYNC_TOKEN`, and share the room
+  key only with people who should read the archive.
 - Review approvals, especially `danger-full-access`, as carefully as a terminal command.
-- The current transport is `ws://`; application-level E2E and a relay are not implemented.
-  Before broad distribution, move to `wss://` and remove `NSAllowsArbitraryLoads`.
+- The app transport is `ws://`; use Tailscale or a TLS proxy for off-LAN access. The
+  optional sync relay encrypts its archive at rest and in transit when served over HTTPS,
+  but it is not a replacement for transport security.
 
 ## Out of scope
 

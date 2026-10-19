@@ -88,8 +88,21 @@ sessions by working directory; tapping an ended session loads its timeline and *
 resumes the runtime.
 
 For a lightweight cloud sync, point that variable at a cloud-synced folder on every host
-(iCloud Drive, Dropbox, OneDrive, etc.). History from another host is readable but can
-only be resumed on the host that owns the native runtime state.
+(iCloud Drive, Dropbox, OneDrive, etc.), or run the bundled encrypted relay:
+
+```bash
+# always-on host
+AGENT_REMOTE_SYNC_TOKEN="server-token" npm run sync-server
+# each agentd
+AGENT_REMOTE_SYNC_URL="https://sync.example.com" \
+AGENT_REMOTE_SYNC_ROOM="my-team" \
+AGENT_REMOTE_SYNC_KEY="a-long-private-room-key" \
+AGENT_REMOTE_SYNC_TOKEN="server-token" npm start
+```
+
+The relay stores AES-256-GCM ciphertext only. Share the room key privately; it is not in
+the public repository. History from another host is readable but can only be resumed on
+the host that owns the native runtime state.
 
 ## App lock
 

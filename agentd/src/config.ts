@@ -26,13 +26,17 @@ export interface AgentConfig {
   dshModel: string;
   dshPatchPath: string;
   syncDir: string;
+  syncUrl?: string;
+  syncRoom?: string;
+  syncKey?: string;
+  syncToken?: string;
   dshRuntime: DshRuntime;
   dshRuntimeError?: string;
   codexBin: string;
   claudeModel: string;
 }
 
-const VERSION = "0.5.0";
+const VERSION = "0.6.0";
 
 function ensureDir(dir: string): void {
   mkdirSync(dir, { recursive: true, mode: 0o700 });
@@ -163,6 +167,16 @@ export function loadConfig(): AgentConfig {
   writeDshPatch(dshPatchPath, dshProvider, dshModel);
   const syncDir = process.env.AGENT_REMOTE_SYNC_DIR?.trim() || path.join(home, "sessions");
   ensureDir(syncDir);
+  const syncUrl = process.env.AGENT_REMOTE_SYNC_URL?.trim() || undefined;
+  const syncRoom = process.env.AGENT_REMOTE_SYNC_ROOM?.trim() || "default";
+  const syncKey = process.env.AGENT_REMOTE_SYNC_KEY?.trim() || undefined;
+  const syncToken = process.env.AGENT_REMOTE_SYNC_TOKEN?.trim() || undefined;
+  if (syncUrl && !syncKey) {
+    throw new Error("AGENT_REMOTE_SYNC_KEY is required when AGENT_REMOTE_SYNC_URL is set");
+  }
+  if (!/^[A-Za-z0-9_-]{1,64}$/.test(syncRoom)) {
+    throw new Error("AGENT_REMOTE_SYNC_ROOM must match [A-Za-z0-9_-]{1,64}");
+  }
 
   const publicUrl =
     process.env.AGENT_REMOTE_PUBLIC_URL?.trim() || `ws://${lanAddress()}:${port}/ws`;
@@ -193,6 +207,10 @@ export function loadConfig(): AgentConfig {
     dshModel,
     dshPatchPath,
     syncDir,
+    syncUrl,
+    syncRoom,
+    syncKey,
+    syncToken,
     dshRuntime,
     dshRuntimeError,
     codexBin,

@@ -87,7 +87,20 @@ Wi-Fi IPv4（例 `ws://192.168.1.25:8787/ws`）を使います。Windows 上の 
 ランタイムの続きを実行できます。
 
 クラウド同期フォルダ（iCloud Drive / Dropbox / OneDrive など）を全ホストで同じ場所に
-指定すると、簡易クラウド同期になります。別ホストの履歴は読み取り専用で、ネイティブ
+指定すると、簡易クラウド同期になります。同梱の暗号化リレーも使えます:
+
+```bash
+# 常時起動するホスト
+AGENT_REMOTE_SYNC_TOKEN="server-token" npm run sync-server
+# 各agentd
+AGENT_REMOTE_SYNC_URL="https://sync.example.com" \
+AGENT_REMOTE_SYNC_ROOM="my-team" \
+AGENT_REMOTE_SYNC_KEY="十分に長いプライベートなルームキー" \
+AGENT_REMOTE_SYNC_TOKEN="server-token" npm start
+```
+
+リレーが保存するのはAES-256-GCMの暗号文だけです。ルームキーは公開リポジトリに
+含めず、必要な人だけに共有してください。別ホストの履歴は読み取り専用で、ネイティブ
 状態を持つホストに接続した場合だけ再開できます。
 
 ## アプリロック

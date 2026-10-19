@@ -53,8 +53,8 @@ repository.
   background; enable it in **Settings → App lock**.
 - **Session history & resume** — conversations survive `agentd` restarts, are grouped by
   project in the app, and ended sessions can be reopened with their timeline intact.
-- **Pseudo cloud sync** — point `AGENT_REMOTE_SYNC_DIR` at an iCloud Drive / Dropbox /
-  OneDrive folder and session archives sync across hosts; the app shows projects and
+- **Pseudo cloud sync** — use a cloud-synced archive folder, or run the included
+  encrypted sync relay and join the same room from every host. The app shows projects and
   their sessions, and can resume sessions that belong to the connected host.
 - **App icon** — the black terminal mark from the connect screen, bundled with the app.
 - **Secure pairing** — QR code or URL + bearer token; the token is stored in the iOS
@@ -139,8 +139,30 @@ read-only and tells you which host owns it. Set the folder to a cloud-synced dir
 AGENT_REMOTE_SYNC_DIR="$HOME/Library/Mobile Documents/com~apple~CloudDocs/AgentRemote" npm start
 ```
 
-The archive contains prompts, tool output and directory paths. Use an encrypted cloud
-folder and do not share it.
+### Encrypted sync relay
+
+The repository also includes a small relay server. It stores only AES-256-GCM
+ciphertext; the room key never reaches the server.
+
+```bash
+# One always-on host (or a VPS/reverse proxy target)
+AGENT_REMOTE_SYNC_TOKEN="server-token" npm run sync-server
+
+# Every agentd that should share the room
+export AGENT_REMOTE_SYNC_URL="https://sync.example.com"
+export AGENT_REMOTE_SYNC_ROOM="my-team"
+export AGENT_REMOTE_SYNC_KEY="a-long-private-room-key"
+export AGENT_REMOTE_SYNC_TOKEN="server-token"
+npm start
+```
+
+Anyone who installs Agent Remote from GitHub gets the same feature. To see the same
+archive they must use the same relay URL, room and key; these are **not** in the public
+repository. Without the key, the relay sees only ciphertext. Sessions belonging to another
+host are read-only there; connect to the owning host to resume.
+
+The archive contains prompts, tool output and directory paths. Use a private, encrypted
+cloud folder or a private relay, and do not publish the room key.
 
 ## Versions
 
@@ -284,6 +306,10 @@ See [SECURITY.md](SECURITY.md) for the threat model and reporting instructions.
 | `AGENT_REMOTE_BIND` | `0.0.0.0` | Bind address; use `127.0.0.1` behind a proxy |
 | `AGENT_REMOTE_HOME` | `~/.agent-remote` | Token and generated ACP patch |
 | `AGENT_REMOTE_SYNC_DIR` | `~/.agent-remote/sessions` | Durable session archive; point at a cloud-synced folder for pseudo cloud sync |
+| `AGENT_REMOTE_SYNC_URL` | unset | Encrypted relay base URL; enables relay sync |
+| `AGENT_REMOTE_SYNC_ROOM` | `default` | Relay room name (share this with your team) |
+| `AGENT_REMOTE_SYNC_KEY` | unset | Room encryption key; required when the relay URL is set |
+| `AGENT_REMOTE_SYNC_TOKEN` | unset | Bearer token for the relay server |
 | `AGENT_REMOTE_TOKEN` | generated | Fixed bearer token |
 | `AGENT_REMOTE_ROOTS` | `$HOME` | Allowed working directories (`:` separated) |
 | `AGENT_REMOTE_PUBLIC_URL` | LAN URL | URL embedded in the pairing QR |
@@ -402,7 +428,7 @@ approves one command that writes a temporary file.
 - [x] Windows host support (native + WSL2 fallback), all host/client combinations
 - [x] Cross-platform CI (agentd on Windows/macOS/Linux, Android APK, iOS simulator build)
 - [x] Face ID / Touch ID / Optic ID, Android biometrics, app-password fallback
-- [x] Durable session history, project grouping, native resume, file-synced cloud archive
+- [x] Durable session history, project grouping, native resume, file/relay cloud archive
 - [ ] Application-level E2E + relay
 - [ ] APNs push notifications
 - [ ] App Store hardening

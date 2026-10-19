@@ -47,7 +47,7 @@ Android は Jetpack Compose で実装しています。以前のサイバー調�
 - **進行に合わせたセットアップガイド** — 左上の `?` ボタンがホストURL・QR・次の手順を案内。接続やセッションの進捗に応じて内容が変わります
 - **アプリロック** — iOSはFace ID / Touch ID / Optic ID、Androidは指紋・顔認証、さらにアプリ専用パスワードに対応。起動時とバックグラウンド復帰時にロックし、**設定 → アプリロック** から有効化
 - **セッション履歴と再開** — `agentd` を再起動しても会話が残り、アプリではプロジェクト単位で表示。終了したセッションも履歴を読み込んで再開できます
-- **擬似クラウド同期** — `AGENT_REMOTE_SYNC_DIR` を iCloud Drive / Dropbox / OneDrive のフォルダにすると、セッション履歴がホスト間で同期されます。接続中ホストのセッションは再開でき、別ホストの履歴は読み取り専用で表示します
+- **擬似クラウド同期** — クラウド同期フォルダを使う方法と、同梱の暗号化リレーサーバーで同じルームに参加する方法に対応。接続中ホストのセッションは再開でき、別ホストの履歴は読み取り専用で表示します
 - **アプリアイコン** — 接続画面の黒いターミナルマークを同梱
 - **安全なペアリング** — QR コードまたは URL + トークン。トークンは iOS の Keychain / Android の Keystore 暗号化領域に保存
 - **LAN / Tailscale** — Mac 側に inbound ポートを開けずに、tailnet 経由で外部から接続
@@ -122,8 +122,30 @@ Claude はログインまたは API キーが必要で、未認証の場合は�
 AGENT_REMOTE_SYNC_DIR="$HOME/Library/Mobile Documents/com~apple~CloudDocs/AgentRemote" npm start
 ```
 
-履歴にはプロンプト、ツール出力、ディレクトリパスが含まれます。暗号化されたクラウド
-フォルダを使い、共有しないでください。
+### 暗号化リレー同期
+
+リポジトリには小さなリレーサーバーも同梱されています。サーバーが保存するのは
+AES-256-GCMの暗号文だけで、ルームキーはサーバーに送られません。
+
+```bash
+# 常時起動する1台（またはVPS・リバースプロキシ先）
+AGENT_REMOTE_SYNC_TOKEN="server-token" npm run sync-server
+
+# 同じルームに参加する各agentd
+export AGENT_REMOTE_SYNC_URL="https://sync.example.com"
+export AGENT_REMOTE_SYNC_ROOM="my-team"
+export AGENT_REMOTE_SYNC_KEY="十分に長いプライベートなルームキー"
+export AGENT_REMOTE_SYNC_TOKEN="server-token"
+npm start
+```
+
+GitHubから導入した人も同じ機能を使えます。同じ履歴を見るには **同じリレーURL・
+ルーム・キー** を設定する必要があり、これらは公開リポジトリには含めません。キーが
+なければリレー側には暗号文しか見えません。別ホストのセッションは読み取り専用で、
+再開するには所有ホストに接続します。
+
+履歴にはプロンプト、ツール出力、パスが含まれるため、プライベートな暗号化フォルダ
+またはプライベートなリレーを使い、ルームキーを公開しないでください。
 
 ## バージョン
 
@@ -259,6 +281,10 @@ AGENT_REMOTE_PUBLIC_URL="ws://$(tailscale ip -4):8787/ws" npm start
 | `AGENT_REMOTE_BIND` | `0.0.0.0` | bind アドレス。プロキシ背後なら `127.0.0.1` |
 | `AGENT_REMOTE_HOME` | `~/.agent-remote` | トークンと生成 ACP パッチ |
 | `AGENT_REMOTE_SYNC_DIR` | `~/.agent-remote/sessions` | セッション履歴の保存先。クラウド同期フォルダを指定すると擬似クラウド同期になります |
+| `AGENT_REMOTE_SYNC_URL` | 未設定 | 暗号化リレーのベースURL。設定するとリレー同期を有効化 |
+| `AGENT_REMOTE_SYNC_ROOM` | `default` | リレーのルーム名（チームで共有） |
+| `AGENT_REMOTE_SYNC_KEY` | 未設定 | ルーム暗号化キー。URL設定時は必須 |
+| `AGENT_REMOTE_SYNC_TOKEN` | 未設定 | リレーサーバーのBearerトークン |
 | `AGENT_REMOTE_TOKEN` | 自動生成 | 固定 bearer token |
 | `AGENT_REMOTE_ROOTS` | `$HOME` | 許可する作業ディレクトリ（`:` 区切り） |
 | `AGENT_REMOTE_PUBLIC_URL` | LAN URL | QR に埋め込む URL |
@@ -373,7 +399,7 @@ node test/smoke.mjs
 - [x] Windows ホスト対応（ネイティブ + WSL2 フォールバック）、全ホスト/スマホ組み合わせ
 - [x] クロスプラットフォーム CI（Windows/macOS/Linux の agentd、Android APK、iOS シミュレータ）
 - [x] Face ID / Touch ID / Optic ID、Android生体認証、アプリパスワード
-- [x] セッション履歴の永続化、プロジェクト表示、ネイティブ再開、フォルダ同期
+- [x] セッション履歴の永続化、プロジェクト表示、ネイティブ再開、フォルダ/リレー同期
 - [ ] アプリ層 E2E + relay
 - [ ] APNs プッシュ通知
 - [ ] App Store 向け hardening

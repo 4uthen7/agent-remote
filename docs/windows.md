@@ -124,6 +124,21 @@ npm start
 The same path can be used on another Windows/macOS host. History from another host is
 read-only there; the native runtime resume works only on the host that owns the session.
 
+Alternatively, run the bundled relay and point every agentd at it:
+
+```powershell
+$env:AGENT_REMOTE_SYNC_TOKEN = "server-token"
+npm run sync-server
+# in another terminal / host
+$env:AGENT_REMOTE_SYNC_URL = "https://sync.example.com"
+$env:AGENT_REMOTE_SYNC_ROOM = "my-team"
+$env:AGENT_REMOTE_SYNC_KEY = "a-long-private-room-key"
+$env:AGENT_REMOTE_SYNC_TOKEN = "server-token"
+npm start
+```
+
+The relay only sees AES-256-GCM ciphertext.
+
 ## WSL2 fallback
 
 Use this only if a native CLI cannot run in your environment. Run agentd inside WSL2 and

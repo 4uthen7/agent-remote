@@ -4,6 +4,16 @@ All notable changes are published as Git tags and GitHub Releases.
 The format follows a simple semantic versioning scheme; app and daemon versions can differ
 within one release.
 
+## v0.7.0 — 2026-10-19
+
+- **Encrypted relay sync**: `npm run sync-server` serves room-scoped archives as
+  AES-256-GCM ciphertext. agentd pulls and merges them with `AGENT_REMOTE_SYNC_URL`,
+  `_ROOM`, `_KEY` and `_TOKEN`.
+- GitHub installers get the same feature; joining the same room requires the private
+  room key and relay token, which are never committed.
+- Cross-host archives remain read-only; native resume stays on the owning host.
+- agentd **0.6.0**; iOS **0.4.0** and Android **0.5.0** unchanged.
+
 ## v0.6.0 — 2026-10-19
 
 - **Durable session archive**: agentd persists summaries, native runtime ids, config and
