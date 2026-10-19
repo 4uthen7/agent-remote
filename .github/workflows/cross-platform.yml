@@ -28,6 +28,7 @@ jobs:
       - run: npm ci
       - run: npm run typecheck
       - run: npm run test:platform
+      - run: npm run test:archive
 
   android:
     name: android assembleDebug

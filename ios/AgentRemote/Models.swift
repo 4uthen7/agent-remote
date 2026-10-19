@@ -16,8 +16,20 @@ struct SessionSummary: Codable, Identifiable, Equatable {
     var model: String?
     var createdAt: Int
     var updatedAt: Int
+    var archived: Bool?
+    var resumable: Bool?
+    var originHost: String?
+    var lastMessage: String?
+
+    var isArchived: Bool { archived == true }
+    var canResume: Bool { !isArchived || (resumable ?? false) }
+    var folderName: String {
+        let trimmed = cwd.trimmingCharacters(in: CharacterSet(charactersIn: "/\\"))
+        return trimmed.split(whereSeparator: { $0 == "/" || $0 == "\\" }).last.map(String.init) ?? cwd
+    }
 
     var statusLabel: String {
+        if isArchived { return canResume ? "終了・再開可能" : "別ホストの履歴" }
         switch status {
         case "running": return "Running"
         case "awaiting_approval": return "Needs approval"
@@ -27,6 +39,7 @@ struct SessionSummary: Codable, Identifiable, Equatable {
     }
 
     var statusColor: Color {
+        if isArchived { return .secondary }
         switch status {
         case "running": return .blue
         case "awaiting_approval": return .orange
@@ -63,10 +76,6 @@ struct SessionSummary: Codable, Identifiable, Equatable {
         }
     }
 
-    var folderName: String {
-        let trimmed = cwd.hasSuffix("/") ? String(cwd.dropLast()) : cwd
-        return (trimmed as NSString).lastPathComponent
-    }
 }
 
 struct AgentEvent: Codable, Identifiable, Equatable {

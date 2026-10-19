@@ -164,6 +164,19 @@ final class AppStore: ObservableObject {
         send(ClientMessage(type: "create_session", cwd: trimmed, runtime: selected))
     }
 
+    func resumeSession(_ session: SessionSummary) {
+        guard session.canResume else {
+            lastError = "This session belongs to \(session.originHost ?? "another host"). Connect to that host to resume it."
+            return
+        }
+        currentSession = session
+        timeline = []
+        approvals = []
+        activeApproval = nil
+        pendingOpenAfterCreate = true
+        send(ClientMessage(type: "resume_session", cwd: session.cwd, runtime: session.runtime, sessionId: session.id))
+    }
+
     func select(_ session: SessionSummary) {
         currentSession = session
         timeline = []
@@ -176,7 +189,7 @@ final class AppStore: ObservableObject {
 
     func sendPrompt(_ text: String) {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty, let session = currentSession else { return }
+        guard !trimmed.isEmpty, let session = currentSession, !session.isArchived else { return }
         send(ClientMessage(type: "prompt", sessionId: session.id, text: trimmed))
     }
 

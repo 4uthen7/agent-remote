@@ -25,13 +25,14 @@ export interface AgentConfig {
   dshProvider: string;
   dshModel: string;
   dshPatchPath: string;
+  syncDir: string;
   dshRuntime: DshRuntime;
   dshRuntimeError?: string;
   codexBin: string;
   claudeModel: string;
 }
 
-const VERSION = "0.4.0";
+const VERSION = "0.5.0";
 
 function ensureDir(dir: string): void {
   mkdirSync(dir, { recursive: true, mode: 0o700 });
@@ -160,6 +161,8 @@ export function loadConfig(): AgentConfig {
   );
   const dshPatchPath = path.join(home, "dsh-acp.patch.yml");
   writeDshPatch(dshPatchPath, dshProvider, dshModel);
+  const syncDir = process.env.AGENT_REMOTE_SYNC_DIR?.trim() || path.join(home, "sessions");
+  ensureDir(syncDir);
 
   const publicUrl =
     process.env.AGENT_REMOTE_PUBLIC_URL?.trim() || `ws://${lanAddress()}:${port}/ws`;
@@ -189,6 +192,7 @@ export function loadConfig(): AgentConfig {
     dshProvider,
     dshModel,
     dshPatchPath,
+    syncDir,
     dshRuntime,
     dshRuntimeError,
     codexBin,

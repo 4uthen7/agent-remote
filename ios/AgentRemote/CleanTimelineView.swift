@@ -18,7 +18,7 @@ struct CleanTimelineView: View {
     }
 
     private var canSend: Bool {
-        !draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !isBusy
+        !draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !isBusy && session?.isArchived != true
     }
 
     var body: some View {
@@ -26,6 +26,10 @@ struct CleanTimelineView: View {
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 14) {
                     header
+
+                    if let session, session.isArchived {
+                        archivedBanner(session)
+                    }
 
                     if let approval = store.activeApproval {
                         approvalBanner(approval)
@@ -236,4 +240,30 @@ struct CleanTimelineView: View {
             }
         }
     }
+    @ViewBuilder
+    private func archivedBanner(_ session: SessionSummary) -> some View {
+        HStack(spacing: 10) {
+            Image(systemName: "archivebox")
+                .foregroundStyle(.blue)
+            VStack(alignment: .leading, spacing: 2) {
+                Text("終了したセッション")
+                    .font(.subheadline.weight(.semibold))
+                Text(session.canResume
+                     ? "履歴を表示中。再開すると続きから話せます。"
+                     : "この履歴は \(session.originHost ?? "別のホスト") のものです。")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
+            Spacer()
+            if session.canResume {
+                Button("再開") {
+                    store.resumeSession(session)
+                }
+                .font(.caption.weight(.semibold))
+            }
+        }
+        .padding(12)
+        .background(Color.blue.opacity(0.08), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+    }
+
 }

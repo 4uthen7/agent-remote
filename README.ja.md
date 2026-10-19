@@ -46,6 +46,8 @@ Android は Jetpack Compose で実装しています。以前のサイバー調�
 - **デバッグ可能な Android APK** — debug 署名・debuggable。`adb install` で導入でき、ストア署名は不要
 - **進行に合わせたセットアップガイド** — 左上の `?` ボタンがホストURL・QR・次の手順を案内。接続やセッションの進捗に応じて内容が変わります
 - **アプリロック** — iOSはFace ID / Touch ID / Optic ID、Androidは指紋・顔認証、さらにアプリ専用パスワードに対応。起動時とバックグラウンド復帰時にロックし、**設定 → アプリロック** から有効化
+- **セッション履歴と再開** — `agentd` を再起動しても会話が残り、アプリではプロジェクト単位で表示。終了したセッションも履歴を読み込んで再開できます
+- **擬似クラウド同期** — `AGENT_REMOTE_SYNC_DIR` を iCloud Drive / Dropbox / OneDrive のフォルダにすると、セッション履歴がホスト間で同期されます。接続中ホストのセッションは再開でき、別ホストの履歴は読み取り専用で表示します
 - **アプリアイコン** — 接続画面の黒いターミナルマークを同梱
 - **安全なペアリング** — QR コードまたは URL + トークン。トークンは iOS の Keychain / Android の Keystore 暗号化領域に保存
 - **LAN / Tailscale** — Mac 側に inbound ポートを開けずに、tailnet 経由で外部から接続
@@ -104,6 +106,24 @@ DSH `0.2.1-rc.2`、Codex CLI `0.144.6`、Claude Code `2.1.216` / macOS で動作
 Windows は CI（`windows-latest`）で型チェックと agentd 起動を検証しています。各ランタイムの
 CLI は Windows ホスト側でインストール・ログインしてから使ってください。
 Claude はログインまたは API キーが必要で、未認証の場合はアプリにエラーが表示されます。
+
+## セッション履歴と再開
+
+`agentd` はセッションの要約、ネイティブランタイムID、設定、タイムラインを
+`AGENT_REMOTE_SYNC_DIR` に保存します。アプリは実行中・終了済みのセッションを作業
+ディレクトリ（プロジェクト）ごとにまとめて表示します。終了したセッションを開くと履歴を
+読み込め、**再開** でDSH / Codex / Claudeのネイティブセッションを復元して会話を続けられます。
+
+ネイティブセッションの再開は、そのランタイムの状態があるホストに接続している場合のみ
+可能です。クラウド共有フォルダ経由で別ホストの履歴を読む場合は読み取り専用になり、
+所有ホスト名が表示されます。クラウド同期フォルダを指定すると擬似クラウド同期になります:
+
+```bash
+AGENT_REMOTE_SYNC_DIR="$HOME/Library/Mobile Documents/com~apple~CloudDocs/AgentRemote" npm start
+```
+
+履歴にはプロンプト、ツール出力、ディレクトリパスが含まれます。暗号化されたクラウド
+フォルダを使い、共有しないでください。
 
 ## バージョン
 
@@ -238,6 +258,7 @@ AGENT_REMOTE_PUBLIC_URL="ws://$(tailscale ip -4):8787/ws" npm start
 | `AGENT_REMOTE_PORT` | `8787` | WebSocket / HTTP ポート |
 | `AGENT_REMOTE_BIND` | `0.0.0.0` | bind アドレス。プロキシ背後なら `127.0.0.1` |
 | `AGENT_REMOTE_HOME` | `~/.agent-remote` | トークンと生成 ACP パッチ |
+| `AGENT_REMOTE_SYNC_DIR` | `~/.agent-remote/sessions` | セッション履歴の保存先。クラウド同期フォルダを指定すると擬似クラウド同期になります |
 | `AGENT_REMOTE_TOKEN` | 自動生成 | 固定 bearer token |
 | `AGENT_REMOTE_ROOTS` | `$HOME` | 許可する作業ディレクトリ（`:` 区切り） |
 | `AGENT_REMOTE_PUBLIC_URL` | LAN URL | QR に埋め込む URL |
@@ -352,6 +373,7 @@ node test/smoke.mjs
 - [x] Windows ホスト対応（ネイティブ + WSL2 フォールバック）、全ホスト/スマホ組み合わせ
 - [x] クロスプラットフォーム CI（Windows/macOS/Linux の agentd、Android APK、iOS シミュレータ）
 - [x] Face ID / Touch ID / Optic ID、Android生体認証、アプリパスワード
+- [x] セッション履歴の永続化、プロジェクト表示、ネイティブ再開、フォルダ同期
 - [ ] アプリ層 E2E + relay
 - [ ] APNs プッシュ通知
 - [ ] App Store 向け hardening

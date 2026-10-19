@@ -21,6 +21,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Archive
 import androidx.compose.material.icons.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.KeyboardArrowDown
 import androidx.compose.material.icons.outlined.Close
@@ -33,6 +34,7 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -136,6 +138,14 @@ fun TimelineScreen(state: UiState, store: AgentStore, onHelp: () -> Unit) {
             return@Column
         }
 
+        if (session.archived) {
+            ArchivedSessionBanner(
+                resumable = session.resumable,
+                originHost = session.originHost,
+                onResume = { store.resumeSession(session) },
+            )
+        }
+
         Column(Modifier.padding(horizontal = 20.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text(
                 session.title,
@@ -145,7 +155,7 @@ fun TimelineScreen(state: UiState, store: AgentStore, onHelp: () -> Unit) {
                 overflow = TextOverflow.Ellipsis,
             )
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(7.dp)) {
-                StatusPill(session.status)
+                StatusPill(if (session.archived) "archived" else session.status)
                 RuntimeText(session.runtime)
                 Text(
                     session.displayModel,
@@ -218,7 +228,7 @@ fun TimelineScreen(state: UiState, store: AgentStore, onHelp: () -> Unit) {
                 },
                 onCancel = store::cancel,
                 busy = session.isRunning,
-                enabled = state.activeApproval == null,
+                enabled = state.activeApproval == null && !session.archived,
             )
         }
     }
@@ -236,5 +246,42 @@ fun TimelineScreen(state: UiState, store: AgentStore, onHelp: () -> Unit) {
             },
             dismissButton = { TextButton(onClick = { showClose = false }) { Text("キャンセル") } },
         )
+    }
+}
+
+
+@Composable
+private fun ArchivedSessionBanner(
+    resumable: Boolean,
+    originHost: String?,
+    onResume: () -> Unit,
+) {
+    Surface(
+        color = Palette.Blue.copy(alpha = 0.09f),
+        shape = RoundedCornerShape(14.dp),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 4.dp),
+    ) {
+        Row(
+            Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(9.dp),
+        ) {
+            Icon(Icons.Outlined.Archive, null, tint = Palette.Blue, modifier = Modifier.size(18.dp))
+            Column(Modifier.weight(1f)) {
+                Text("終了したセッション", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                Text(
+                    if (resumable) "履歴を表示中。再開すると続きから話せます。"
+                    else "この履歴は ${originHost ?: "別のホスト"} のものです。",
+                    fontSize = 10.sp,
+                    color = Palette.Secondary,
+                    lineHeight = 14.sp,
+                )
+            }
+            if (resumable) {
+                TextButton(onClick = onResume) {
+                    Text("再開", fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                }
+            }
+        }
     }
 }

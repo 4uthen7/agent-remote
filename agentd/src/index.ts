@@ -4,6 +4,7 @@ import { DshAdapter } from "./acp/dsh.js";
 import { CodexAdapter } from "./codex/adapter.js";
 import { ClaudeAdapter } from "./claude/adapter.js";
 import { RuntimeManager } from "./runtime/manager.js";
+import { SessionStore } from "./session-store.js";
 import { createAgentServer } from "./server.js";
 import { lanAddresses, log, platformName, sleep } from "./util.js";
 
@@ -22,8 +23,10 @@ async function main(): Promise<void> {
   log(`DSH profile: ${config.dshProfile} (provider=${config.dshProvider}, model=${config.dshModel})`);
   log(`Allowed roots: ${config.roots.join(", ")}`);
   log(`Platform: ${platformName()} (${process.platform}/${process.arch})`);
+  log(`Session archive: ${config.syncDir}`);
   log("Runtimes: dsh, codex, claude (lazy)");
 
+  const sessionStore = new SessionStore(config.syncDir, config.hostName);
   const manager = new RuntimeManager({
     dsh: () => {
       if (config.dshRuntimeError) throw new Error(config.dshRuntimeError);
@@ -51,7 +54,7 @@ async function main(): Promise<void> {
         model: config.claudeModel,
         logger: (line) => log(line),
       }),
-  });
+  }, sessionStore);
 
   manager.on("exit", (info: unknown) => {
     const record = typeof info === "object" && info !== null ? (info as Record<string, unknown>) : {};

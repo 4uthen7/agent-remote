@@ -198,6 +198,20 @@ export class DshAdapter extends EventEmitter {
     return this.summarize(session);
   }
 
+  restoreSession(sessionId: string, record: SessionRecord): void {
+    const session = this.sessions.get(sessionId);
+    if (!session) return;
+    session.events = record.events.slice();
+    session.seq = Math.max(record.seq, ...record.events.map((event) => event.seq), 0);
+    session.title = record.title;
+    session.createdAt = record.createdAt;
+    session.updatedAt = record.updatedAt;
+    session.configOptions = record.configOptions;
+    session.model = record.model;
+    session.status = "idle";
+    session.pendingApprovals = [];
+  }
+
   async resumeSession(sessionId: string, cwd: string): Promise<SessionSummary> {
     const client = this.requireClient();
     const result = await client.request<Record<string, unknown>>(

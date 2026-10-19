@@ -16,6 +16,12 @@ export interface SessionSummary {
   model?: string;
   createdAt: number;
   updatedAt: number;
+  /** Present in the durable archive rather than a live adapter. */
+  archived?: boolean;
+  /** Native runtime state exists on this host and can be resumed here. */
+  resumable?: boolean;
+  originHost?: string;
+  lastMessage?: string;
 }
 
 export type AgentEventType =

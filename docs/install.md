@@ -80,6 +80,17 @@ For a **Windows host**, allow Node.js on Private networks, then use the Windows 
 IPv4 (for example `ws://192.168.1.25:8787/ws`). On an Android emulator running on Windows,
 `ws://10.0.2.2:8787/ws` still points at the Windows host.
 
+## Session history and resume
+
+`agentd` saves session history under `AGENT_REMOTE_SYNC_DIR` (default
+`~/.agent-remote/sessions`). After an agentd restart, the app groups the live and saved
+sessions by working directory; tapping an ended session loads its timeline and **再開**
+resumes the runtime.
+
+For a lightweight cloud sync, point that variable at a cloud-synced folder on every host
+(iCloud Drive, Dropbox, OneDrive, etc.). History from another host is readable but can
+only be resumed on the host that owns the native runtime state.
+
 ## App lock
 
 Both clients support an optional app lock in **Settings → App lock**:

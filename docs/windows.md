@@ -111,6 +111,19 @@ adapter, do not use its `vEthernet` address — use Wi-Fi/Ethernet.
 Keep Windows' network profile set to **Private** for home/trusted networks. Do not expose
 port 8787 to the public internet; use Tailscale or a TLS reverse proxy.
 
+## Session archive and pseudo cloud sync
+
+agentd saves session history under `%USERPROFILE%\.agent-remote\sessions` by default.
+To sync it between hosts, set `AGENT_REMOTE_SYNC_DIR` to a cloud-synced folder:
+
+```powershell
+$env:AGENT_REMOTE_SYNC_DIR = "$HOME\OneDrive\AgentRemote"
+npm start
+```
+
+The same path can be used on another Windows/macOS host. History from another host is
+read-only there; the native runtime resume works only on the host that owns the session.
+
 ## WSL2 fallback
 
 Use this only if a native CLI cannot run in your environment. Run agentd inside WSL2 and

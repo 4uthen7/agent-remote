@@ -18,7 +18,9 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Archive
 import androidx.compose.material.icons.outlined.Bolt
+import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.ErrorOutline
@@ -43,6 +45,10 @@ import androidx.compose.ui.unit.sp
 
 @Composable
 fun SessionsScreen(state: UiState, store: AgentStore, onHelp: () -> Unit) {
+    val projects = state.sessions
+        .groupBy { it.cwd.ifBlank { "—" } }
+        .map { (cwd, sessions) -> ProjectGroup(cwd, sessions.sortedByDescending { it.updatedAt }) }
+        .sortedByDescending { it.sessions.maxOfOrNull { session -> session.updatedAt } ?: 0L }
     Column(
         Modifier
             .fillMaxSize()
@@ -81,8 +87,8 @@ fun SessionsScreen(state: UiState, store: AgentStore, onHelp: () -> Unit) {
             item {
                 HostCard(state)
             }
-            item { SectionLabel("最近のセッション") }
-            if (state.sessions.isEmpty()) {
+            item { SectionLabel("プロジェクト") }
+            if (projects.isEmpty()) {
                 item {
                     EmptyState(
                         "セッションがありません",
@@ -90,11 +96,41 @@ fun SessionsScreen(state: UiState, store: AgentStore, onHelp: () -> Unit) {
                     )
                 }
             } else {
-                item {
-                    GroupCard {
-                        state.sessions.forEachIndexed { index, session ->
-                            SessionRow(session) { store.openSession(session) }
-                            if (index != state.sessions.lastIndex) GroupDivider(leading = 64.dp)
+                items(projects, key = { it.cwd }) { project ->
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Row(
+                            Modifier.fillMaxWidth().padding(horizontal = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Icon(Icons.Outlined.Folder, null, tint = Palette.Blue, modifier = Modifier.size(16.dp))
+                            Spacer(Modifier.width(7.dp))
+                            Text(
+                                project.sessions.first().folderName,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.weight(1f),
+                            )
+                            Text("${project.sessions.size} 件", fontSize = 10.sp, color = Palette.Secondary)
+                        }
+                        Text(
+                            project.cwd,
+                            fontSize = 10.sp,
+                            color = Palette.Tertiary,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.padding(start = 27.dp),
+                        )
+                        GroupCard {
+                            project.sessions.forEachIndexed { index, session ->
+                                SessionRow(
+                                    session = session,
+                                    onClick = { store.openSession(session) },
+                                    onResume = { store.resumeSession(session) },
+                                )
+                                if (index != project.sessions.lastIndex) GroupDivider(leading = 64.dp)
+                            }
                         }
                     }
                 }
@@ -107,7 +143,7 @@ fun SessionsScreen(state: UiState, store: AgentStore, onHelp: () -> Unit) {
                 ) {
                     Text("LOCAL TRANSPORT · TAILSCALE READY", fontSize = 9.sp, color = Palette.Secondary, letterSpacing = 1.sp)
                     Text("·", fontSize = 9.sp, color = Palette.Tertiary)
-                    Text("v${state.version.ifBlank { "0.3.2" }}", fontSize = 9.sp, color = Palette.Secondary)
+                    Text("v${state.version.ifBlank { "0.5.0" }}", fontSize = 9.sp, color = Palette.Secondary)
                 }
             }
         }
@@ -155,7 +191,11 @@ private fun HostCard(state: UiState) {
 }
 
 @Composable
-private fun SessionRow(session: SessionSummary, onClick: () -> Unit) {
+private fun SessionRow(
+    session: SessionSummary,
+    onClick: () -> Unit,
+    onResume: () -> Unit = onClick,
+) {
     Row(
         Modifier
             .fillMaxWidth()
@@ -164,7 +204,7 @@ private fun SessionRow(session: SessionSummary, onClick: () -> Unit) {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        val color = statusColor(session.status)
+        val color = if (session.archived) Palette.Secondary else statusColor(session.status)
         Box(
             Modifier
                 .size(40.dp)
@@ -173,10 +213,11 @@ private fun SessionRow(session: SessionSummary, onClick: () -> Unit) {
             contentAlignment = Alignment.Center,
         ) {
             Icon(
-                when (session.status) {
-                    "awaiting_approval" -> Icons.Outlined.PanTool
-                    "error" -> Icons.Outlined.ErrorOutline
-                    "running" -> Icons.Outlined.Bolt
+                when {
+                    session.archived -> Icons.Outlined.Archive
+                    session.status == "awaiting_approval" -> Icons.Outlined.PanTool
+                    session.status == "error" -> Icons.Outlined.ErrorOutline
+                    session.status == "running" -> Icons.Outlined.Bolt
                     else -> Icons.Outlined.Terminal
                 },
                 null,
@@ -200,7 +241,7 @@ private fun SessionRow(session: SessionSummary, onClick: () -> Unit) {
                 overflow = TextOverflow.Ellipsis,
             )
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                StatusDot(session.status, 6.dp)
+                StatusDot(if (session.archived) "idle" else session.status, 6.dp)
                 Text(session.statusLabel, fontSize = 11.sp, color = Palette.Secondary)
                 Text("·", fontSize = 11.sp, color = Palette.Tertiary)
                 RuntimeText(session.runtime)
@@ -221,6 +262,21 @@ private fun SessionRow(session: SessionSummary, onClick: () -> Unit) {
                 )
             }
         }
-        Icon(Icons.Outlined.ChevronRight, null, tint = Palette.Tertiary, modifier = Modifier.size(16.dp))
+        if (session.archived && session.resumable) {
+            Text(
+                "再開",
+                fontSize = 11.sp,
+                color = Palette.Blue,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .clickable(onClick = onResume)
+                    .padding(horizontal = 6.dp, vertical = 4.dp),
+            )
+        } else {
+            Icon(Icons.Outlined.ChevronRight, null, tint = Palette.Tertiary, modifier = Modifier.size(16.dp))
+        }
     }
 }
+
+private data class ProjectGroup(val cwd: String, val sessions: List<SessionSummary>)

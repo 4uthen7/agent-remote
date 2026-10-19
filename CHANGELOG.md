@@ -4,6 +4,18 @@ All notable changes are published as Git tags and GitHub Releases.
 The format follows a simple semantic versioning scheme; app and daemon versions can differ
 within one release.
 
+## v0.6.0 — 2026-10-19
+
+- **Durable session archive**: agentd persists summaries, native runtime ids, config and
+  timeline under `AGENT_REMOTE_SYNC_DIR`; restarts no longer erase conversations.
+- **Projects and resume**: both apps group sessions by working directory, show ended
+  sessions with their last message, and resume the native DSH/Codex/Claude session with
+  its timeline restored.
+- **Pseudo cloud sync**: point the sync directory at iCloud Drive / Dropbox / OneDrive to
+  share archives between hosts. History from another host is read-only until you connect
+  to the owning host.
+- agentd **0.5.0**, iOS **0.4.0**, Android **0.5.0**.
+
 ## v0.5.0 — 2026-10-19
 
 - **App lock on both clients**: Face ID / Touch ID / Optic ID (iOS), fingerprint/face

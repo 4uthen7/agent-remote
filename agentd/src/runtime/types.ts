@@ -22,6 +22,8 @@ export type RuntimeAdapter = EventEmitter & {
   snapshot(sessionId: string): RuntimeSnapshot | undefined;
   newSession(cwd: string): Promise<SessionSummary>;
   resumeSession(sessionId: string, cwd: string): Promise<SessionSummary>;
+  /** Rehydrate an archived timeline after a native resume. */
+  restoreSession?(sessionId: string, record: SessionRecord): void;
   prompt(sessionId: string, text: string): Promise<void>;
   cancel(sessionId: string): void;
   setModel(sessionId: string, value: string): Promise<ConfigOption[]>;

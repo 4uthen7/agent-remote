@@ -51,6 +51,11 @@ repository.
 - **App lock** — Face ID / Touch ID / Optic ID on iOS, fingerprint or face on Android,
   plus an app-specific password fallback. Locks on launch and when returning from the
   background; enable it in **Settings → App lock**.
+- **Session history & resume** — conversations survive `agentd` restarts, are grouped by
+  project in the app, and ended sessions can be reopened with their timeline intact.
+- **Pseudo cloud sync** — point `AGENT_REMOTE_SYNC_DIR` at an iCloud Drive / Dropbox /
+  OneDrive folder and session archives sync across hosts; the app shows projects and
+  their sessions, and can resume sessions that belong to the connected host.
 - **App icon** — the black terminal mark from the connect screen, bundled with the app.
 - **Secure pairing** — QR code or URL + bearer token; the token is stored in the iOS
   Keychain or Android Keystore-encrypted preferences.
@@ -117,6 +122,25 @@ Windows is covered by CI (`windows-latest`) for typecheck and agentd startup; in
 sign in to the runtime CLIs on the Windows host before creating that runtime's session.
 Claude requires a Claude Code login or an API key; the app surfaces a clear error if
 authentication is missing.
+
+## Session history and resume
+
+`agentd` saves each session's summary, native runtime id, configuration and timeline to
+`AGENT_REMOTE_SYNC_DIR`. The app groups live and saved sessions by working directory
+(project). Tap an ended session to read its history; **再開** resumes the native DSH/Codex/
+Claude session and continues the same timeline.
+
+Native resume requires the runtime state to exist on the connected host. If the archive
+came from another host through a shared cloud folder, the app shows the history as
+read-only and tells you which host owns it. Set the folder to a cloud-synced directory
+(iCloud Drive, Dropbox, OneDrive, etc.) to make this act like lightweight cloud sync:
+
+```bash
+AGENT_REMOTE_SYNC_DIR="$HOME/Library/Mobile Documents/com~apple~CloudDocs/AgentRemote" npm start
+```
+
+The archive contains prompts, tool output and directory paths. Use an encrypted cloud
+folder and do not share it.
 
 ## Versions
 
@@ -259,6 +283,7 @@ See [SECURITY.md](SECURITY.md) for the threat model and reporting instructions.
 | `AGENT_REMOTE_PORT` | `8787` | WebSocket/HTTP port |
 | `AGENT_REMOTE_BIND` | `0.0.0.0` | Bind address; use `127.0.0.1` behind a proxy |
 | `AGENT_REMOTE_HOME` | `~/.agent-remote` | Token and generated ACP patch |
+| `AGENT_REMOTE_SYNC_DIR` | `~/.agent-remote/sessions` | Durable session archive; point at a cloud-synced folder for pseudo cloud sync |
 | `AGENT_REMOTE_TOKEN` | generated | Fixed bearer token |
 | `AGENT_REMOTE_ROOTS` | `$HOME` | Allowed working directories (`:` separated) |
 | `AGENT_REMOTE_PUBLIC_URL` | LAN URL | URL embedded in the pairing QR |
@@ -377,6 +402,7 @@ approves one command that writes a temporary file.
 - [x] Windows host support (native + WSL2 fallback), all host/client combinations
 - [x] Cross-platform CI (agentd on Windows/macOS/Linux, Android APK, iOS simulator build)
 - [x] Face ID / Touch ID / Optic ID, Android biometrics, app-password fallback
+- [x] Durable session history, project grouping, native resume, file-synced cloud archive
 - [ ] Application-level E2E + relay
 - [ ] APNs push notifications
 - [ ] App Store hardening

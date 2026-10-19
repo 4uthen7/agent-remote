@@ -16,6 +16,10 @@ data class SessionSummary(
     val model: String?,
     val createdAt: Long,
     val updatedAt: Long,
+    val archived: Boolean = false,
+    val resumable: Boolean = true,
+    val originHost: String? = null,
+    val lastMessage: String? = null,
 ) {
     val isRunning: Boolean get() = status == "running" || status == "awaiting_approval"
     val displayModel: String get() = model?.takeIf { it.isNotBlank() } ?: "default"
@@ -26,9 +30,11 @@ data class SessionSummary(
             else -> "DSH"
         }
     val folderName: String
-        get() = cwd.trimEnd('/').substringAfterLast('/').ifBlank { cwd }
+        get() = cwd.trimEnd('/', '\\').substringAfterLast('/').substringAfterLast('\\').ifBlank { cwd }
     val statusLabel: String
-        get() = when (status) {
+        get() = if (archived) {
+            if (resumable) "終了・再開可能" else "別ホストの履歴"
+        } else when (status) {
             "running" -> "実行中"
             "awaiting_approval" -> "承認待ち"
             "error" -> "エラー"
@@ -176,6 +182,10 @@ object Json {
         model = string(o, "model"),
         createdAt = long(o, "createdAt") ?: 0L,
         updatedAt = long(o, "updatedAt") ?: 0L,
+        archived = o.optBoolean("archived", false),
+        resumable = if (o.has("resumable")) o.optBoolean("resumable", true) else true,
+        originHost = string(o, "originHost"),
+        lastMessage = string(o, "lastMessage"),
     )
 
     fun parseSessions(a: JSONArray?): List<SessionSummary> {

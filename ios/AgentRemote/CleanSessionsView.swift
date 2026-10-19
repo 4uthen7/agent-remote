@@ -6,6 +6,18 @@ struct CleanSessionsView: View {
     @State private var showingNewSession = false
     @State private var showingSettings = false
 
+    private var projectGroups: [ProjectGroup] {
+        let grouped = Dictionary(grouping: store.sessions) { session in
+            session.cwd.isEmpty ? "—" : session.cwd
+        }
+        return grouped.map { cwd, sessions in
+            ProjectGroup(cwd: cwd, sessions: sessions.sorted { $0.updatedAt > $1.updatedAt })
+        }
+        .sorted { lhs, rhs in
+            (lhs.sessions.first?.updatedAt ?? 0) > (rhs.sessions.first?.updatedAt ?? 0)
+        }
+    }
+
     var body: some View {
         Group {
             if store.sessions.isEmpty {
@@ -37,11 +49,25 @@ struct CleanSessionsView: View {
                         .padding(.vertical, 2)
                     }
 
-                    Section {
-                        ForEach(store.sessions) { session in
-                            NavigationLink(value: session.id) {
-                                CleanSessionRow(session: session)
+                    ForEach(projectGroups) { group in
+                        Section {
+                            ForEach(group.sessions) { session in
+                                NavigationLink(value: session.id) {
+                                    CleanSessionRow(session: session)
+                                }
                             }
+                        } header: {
+                            HStack(spacing: 6) {
+                                Image(systemName: "folder")
+                                    .font(.caption2)
+                                Text(group.sessions.first?.folderName ?? group.cwd)
+                                    .font(.caption.weight(.semibold))
+                                Spacer()
+                                Text("\(group.sessions.count) 件")
+                                    .font(.caption2)
+                                    .foregroundStyle(.secondary)
+                            }
+                            .textCase(nil)
                         }
                     }
                 }
@@ -109,12 +135,18 @@ struct CleanSessionsView: View {
     }
 }
 
+private struct ProjectGroup: Identifiable {
+    var id: String { cwd }
+    let cwd: String
+    let sessions: [SessionSummary]
+}
+
 struct CleanSessionRow: View {
     let session: SessionSummary
 
     var body: some View {
         HStack(spacing: 12) {
-            CleanSessionIcon(status: session.status)
+            CleanSessionIcon(status: session.isArchived ? "archived" : session.status)
 
             VStack(alignment: .leading, spacing: 3) {
                 Text(session.title)
@@ -131,7 +163,7 @@ struct CleanSessionRow: View {
                     Circle()
                         .fill(CleanText.statusColor(session.status))
                         .frame(width: 6, height: 6)
-                    Text(CleanText.status(session.status))
+                    Text(session.isArchived ? session.statusLabel : CleanText.status(session.status))
                         .font(.caption2)
                         .foregroundStyle(.secondary)
                     Text("·")
@@ -152,6 +184,12 @@ struct CleanSessionRow: View {
                         .font(.caption2)
                         .foregroundStyle(.tertiary)
                 }
+            }
+
+            if session.isArchived {
+                Text(session.canResume ? "再開" : "別ホスト")
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(session.canResume ? .blue : .secondary)
             }
         }
         .padding(.vertical, 3)

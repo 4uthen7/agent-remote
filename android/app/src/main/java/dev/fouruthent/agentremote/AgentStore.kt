@@ -190,6 +190,36 @@ class AgentStore(application: Application) : AndroidViewModel(application) {
         send("subscribe") { it.put("sessionId", session.id) }
     }
 
+    fun resumeSession(session: SessionSummary) {
+        if (session.archived && !session.resumable) {
+            _state.update {
+                it.copy(lastError = "このセッションは ${session.originHost ?: "別のホスト"} のものです。そのホストに接続してください。")
+            }
+            return
+        }
+        pendingCreate = true
+        _state.update {
+            it.copy(
+                route = Route.Timeline,
+                currentSession = session,
+                events = emptyList(),
+                approvals = emptyList(),
+                activeApproval = null,
+                configOptions = emptyList(),
+                lastError = null,
+            )
+        }
+        send("resume_session") {
+            it.put("sessionId", session.id)
+            it.put("cwd", session.cwd)
+            it.put("runtime", session.runtime)
+        }
+    }
+
+    fun resumeCurrentSession() {
+        _state.value.currentSession?.let(::resumeSession)
+    }
+
     fun openSettings() {
         _state.update { it.copy(route = Route.Settings) }
     }

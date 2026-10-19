@@ -91,6 +91,7 @@ fun statusColor(status: String): Color = when (status) {
     "running" -> Palette.Blue
     "awaiting_approval" -> Palette.Orange
     "error" -> Palette.Red
+    "archived" -> Palette.Secondary
     else -> Palette.Secondary
 }
 
@@ -136,6 +137,7 @@ fun StatusPill(status: String) {
                 "running" -> "実行中"
                 "awaiting_approval" -> "承認待ち"
                 "error" -> "エラー"
+                "archived" -> "終了"
                 else -> "待機中"
             },
             color = color,
