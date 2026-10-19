@@ -31,7 +31,7 @@ export interface AgentConfig {
   claudeModel: string;
 }
 
-const VERSION = "0.2.0";
+const VERSION = "0.2.1";
 
 function ensureDir(dir: string): void {
   mkdirSync(dir, { recursive: true, mode: 0o700 });

@@ -33,6 +33,7 @@ cyber/3D visual experiment is not part of this repository.
 - **Model switching** — change the selected runtime's model from the session screen.
 - **Native iOS UI** — SwiftUI, grouped lists, large titles, SF Symbols, system light/dark,
   Japanese labels, and a chat layout that stays out of the way.
+- **App icon** — the black terminal mark from the connect screen, bundled with the app.
 - **Secure pairing** — QR code or URL + bearer token; the token is stored in the iOS Keychain.
 - **LAN or Tailscale** — no inbound ports on the Mac; put both devices on a tailnet for
   off-LAN use.
@@ -214,9 +215,10 @@ approves one command that writes a temporary file.
 - [x] Runtime picker (DSH / Codex / Claude) and per-runtime model menus
 - [x] Native iOS client, QR pairing, Keychain, Tailscale-ready transport
 - [x] Clean Japanese UI, unsigned IPA packaging
+- [x] App icon (black terminal mark)
 - [ ] Application-level E2E + relay
 - [ ] APNs push notifications
-- [ ] App icon and App Store hardening
+- [ ] App Store hardening
 
 ## Repository layout
 

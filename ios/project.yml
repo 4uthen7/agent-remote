@@ -20,6 +20,9 @@ targets:
       - path: AgentRemote
         excludes:
           - "Info.plist"
+          - "AppIcons"
+      - path: AgentRemote/AppIcons
+        buildPhase: resources
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.4uthent.agentremote
@@ -33,8 +36,12 @@ targets:
       path: AgentRemote/Info.plist
       properties:
         CFBundleDisplayName: Agent Remote
-        CFBundleShortVersionString: "0.2.0"
-        CFBundleVersion: "2"
+        CFBundleShortVersionString: "0.2.1"
+        CFBundleVersion: "3"
+        CFBundleIcons:
+          CFBundlePrimaryIcon:
+            CFBundleIconFiles:
+              - AppIcon60x60
         LSRequiresIPhoneOS: true
         UILaunchScreen: {}
         UISupportedInterfaceOrientations:

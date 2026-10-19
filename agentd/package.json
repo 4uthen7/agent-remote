@@ -1,6 +1,6 @@
 {
   "name": "@agent-remote/agentd",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "private": true,
   "type": "module",
   "description": "Host daemon for Agent Remote: drives DSH over ACP and exposes a mobile-friendly WebSocket API.",

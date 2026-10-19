@@ -31,6 +31,7 @@ iPhone は Node 製の小さなデーモン `agentd` にトークン認証付き
 - **ワンタップ承認** — 実行コマンド、作業ディレクトリ、理由、`danger-full-access` 昇格を確認して一度だけ許可
 - **モデル切替** — セッション画面から、選択中ランタイムのモデルを変更
 - **ネイティブ iOS UI** — SwiftUI、grouped list、Large Title、SF Symbols、システムのライト/ダーク、日本語ラベル
+- **アプリアイコン** — 接続画面の黒いターミナルマークを同梱
 - **安全なペアリング** — QR コードまたは URL + トークン。トークンは iOS の Keychain に保存
 - **LAN / Tailscale** — Mac 側に inbound ポートを開けずに、tailnet 経由で外部から接続
 
@@ -200,6 +201,7 @@ node test/smoke.mjs
 - [x] ランタイム選択（DSH / Codex / Claude）とランタイム別モデルメニュー
 - [x] ネイティブ iOS クライアント、QR ペアリング、Keychain、Tailscale 対応
 - [x] 日本語クリーン UI、署名なし IPA
+- [x] アプリアイコン（黒いターミナルマーク）
 - [ ] アプリ層 E2E + relay
 - [ ] APNs プッシュ通知
 - [ ] アプリアイコン / App Store 向け hardening
