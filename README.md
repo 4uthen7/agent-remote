@@ -260,6 +260,76 @@ See [SECURITY.md](SECURITY.md) for the threat model and reporting instructions.
 | `CODEX_BIN` | `codex` | Codex CLI path |
 | `AGENT_REMOTE_CLAUDE_MODEL` | `sonnet` | Default Claude model alias |
 
+## Troubleshooting
+
+A short list for the most common first-run problems. Detailed steps are in
+[docs/install.md](docs/install.md#troubleshooting) and
+[docs/windows.md](docs/windows.md#troubleshooting).
+
+### `EADDRINUSE: address already in use 0.0.0.0:8787`
+
+Another `agentd` is already running. The new process exits **before** it prints a QR.
+Find the old process and stop it:
+
+```bash
+lsof -nP -iTCP:8787 -sTCP:LISTEN
+kill <PID>
+```
+
+Or start this instance on another port:
+
+```bash
+AGENT_REMOTE_PORT=8788 npm start
+# then use ws://<host IP>:8788/ws in the app
+```
+
+### The QR code is not visible
+
+The QR is printed **once at startup in the foreground terminal**, after the
+`WebSocket:` / `Token:` / host-address lines and before `Keep this process running`.
+It is not written to a file.
+
+- Run `npm start` in a normal terminal, not with `> log &` or as a background service.
+- Widen the terminal; a narrow window wraps the block characters and makes them unscannable.
+- Scroll up and look for `Scan this with the Agent Remote iOS app:`.
+- Restart `agentd` to print it again. Android can scan the same QR even though the label
+  says iOS.
+- If QR is inconvenient, enter the URL and token manually.
+
+### The phone cannot connect
+
+- Use `ws://<host LAN IP>:8787/ws` (or the Tailscale IP), **not** `127.0.0.1`/`localhost`
+  on the phone.
+- Put the phone and host on the same Wi-Fi, or both on Tailscale.
+- On Windows, allow Node.js on **Private** networks (or add a firewall rule for TCP 8787).
+- Check `http://<host IP>:8787/health` from the phone's browser.
+- Android emulator on the host: `ws://10.0.2.2:8787/ws`.
+
+### Unauthorized / token errors
+
+Re-copy the `Token:` line or run the token command, then reconnect:
+
+```bash
+# macOS / Linux
+cat ~/.agent-remote/token
+```
+
+```powershell
+# Windows PowerShell
+Get-Content $HOME\.agent-remote\token
+```
+
+Scanning a fresh QR is the simplest way to replace both URL and token.
+
+### A runtime will not start
+
+- **DSH:** install the DSH CLI, put `dsh` on PATH or set `DSH_BIN`, and sign in.
+- **Codex:** `codex login status`; update Codex (Windows app-server support is recent).
+- **Claude:** `claude auth status` or set `ANTHROPIC_API_KEY`.
+- The Android setup guide (`?` at the top-left) explains the current step and the next action.
+
+Do not share a screenshot of the QR or terminal token; it grants control of the host.
+
 ## Development
 
 Run the mock daemon for UI work — it serves sample sessions, tool calls and a pending

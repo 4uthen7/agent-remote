@@ -243,6 +243,74 @@ AGENT_REMOTE_PUBLIC_URL="ws://$(tailscale ip -4):8787/ws" npm start
 | `CODEX_BIN` | `codex` | Codex CLI のパス |
 | `AGENT_REMOTE_CLAUDE_MODEL` | `sonnet` | Claude のデフォルトモデル |
 
+## 困ったとき
+
+初回でつまずきやすい点の短い一覧です。詳しい手順は
+[docs/install.ja.md](docs/install.ja.md#トラブルシューティング) と
+[docs/windows.md](docs/windows.md#troubleshooting) にあります。
+
+### `EADDRINUSE: address already in use 0.0.0.0:8787`
+
+すでに別の `agentd` が動いています。新しいプロセスはQRを出す**前に**終了します。
+古いプロセスを探して止めてください。
+
+```bash
+lsof -nP -iTCP:8787 -sTCP:LISTEN
+kill <PID>
+```
+
+または別ポートで起動します。
+
+```bash
+AGENT_REMOTE_PORT=8788 npm start
+# アプリでは ws://<ホストIP>:8788/ws を使う
+```
+
+### QRコードが表示されない
+
+QRは**起動時に前面のターミナルへ1回だけ**、`WebSocket:` / `Token:` / ホストアドレスの後、
+`Keep this process running` の前に表示されます。ファイルには保存されません。
+
+- `npm start > log &` やバックグラウンドサービスでは表示されません。通常のターミナルで実行
+- ターミナルを広げる。狭いとブロック文字が折り返されて読み取れません
+- 上にスクロールして `Scan this with the Agent Remote iOS app:` を探す
+- もう一度表示したい場合は `agentd` を再起動
+- 表示文言はiOSですが、Androidでも同じQRを読み取れます
+- QRが使いにくい場合はURLとトークンを手入力
+
+### スマホから接続できない
+
+- スマホ側で `127.0.0.1` / `localhost` を使わない。`ws://<ホストのLAN IP>:8787/ws`（またはTailscale IP）
+- スマホとホストを同じWi-Fi、または両方Tailscaleに入れる
+- WindowsではNode.jsを**プライベートネットワーク**で許可（TCP 8787のファイアウォール規則でも可）
+- スマホのブラウザで `http://<ホストIP>:8787/health` を開いて確認
+- ホスト上のAndroidエミュレータは `ws://10.0.2.2:8787/ws`
+
+### 認証エラー / トークンエラー
+
+`Token:` の行をコピーし直すか、トークンを確認して再接続します。
+
+```bash
+# macOS / Linux
+cat ~/.agent-remote/token
+```
+
+```powershell
+# Windows PowerShell
+Get-Content $HOME\.agent-remote\token
+```
+
+新しいQRを読み取ると、URLとトークンの両方を一度に更新できます。
+
+### ランタイムが起動しない
+
+- **DSH:** DSH CLIをインストールし、`dsh` をPATHに置くか `DSH_BIN` を設定してログイン
+- **Codex:** `codex login status` を確認。Windowsのapp-server対応は新しい版が必要
+- **Claude:** `claude auth status`、または `ANTHROPIC_API_KEY` を設定
+- Androidのセットアップガイド（左上の `?`）が現在の手順と次の操作を案内します
+
+QRやターミナルのトークンを含むスクリーンショットは共有しないでください。ホストの操作権限になります。
+
 ## 開発
 
 DSH を起動せずに UI を確認できるモックデーモン:
