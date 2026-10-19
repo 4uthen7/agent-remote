@@ -10,7 +10,7 @@
 [![Node](https://img.shields.io/badge/Node-22%2B-339933)](https://nodejs.org/)
 [![Cross-platform CI](https://github.com/4uthen7/agent-remote/actions/workflows/cross-platform.yml/badge.svg)](https://github.com/4uthen7/agent-remote/actions/workflows/cross-platform.yml)
 
-Mac 上で動くコーディングエージェントを、**iPhone / Android** から操作するための
+PC 上で動くコーディングエージェントを、**iPhone / Android** から操作するための
 ネイティブアプリです。どちらも Node 製の小さなデーモン `agentd` にトークン認証付き
 WebSocket で接続し、エージェントの出力をリアルタイムで表示しながら、サンドボックス
 昇格の承認をスマートフォンから行えます。
@@ -173,7 +173,7 @@ agentd が表示する `WebSocket:` の行を使います:
 
 | 状況 | ホストURL |
 |---|---|
-| 実機（同じWi-Fi） | `ws://<MacのLAN IP>:8787/ws`（例 `ws://192.168.1.10:8787/ws`） |
+| 実機（同じWi-Fi） | `ws://<ホストのLAN IP>:8787/ws`（例 `ws://192.168.1.10:8787/ws`） |
 | Tailscale | `ws://<tailscale IP>:8787/ws` |
 | Androidエミュレータ | `ws://10.0.2.2:8787/ws` |
 
@@ -191,7 +191,7 @@ agentd が表示する `WebSocket:` の行を使います:
 - トークン: `cat ~/.agent-remote/token`
 
 スマートフォンから見た `127.0.0.1` は端末自身なので使えません。
-LAN 外から使う場合は、Mac とスマートフォンの両方を Tailscale に入れ、tailnet の IP を使います:
+LAN 外から使う場合は、PC とスマートフォンの両方を Tailscale に入れ、tailnet の IP を使います:
 
 ```bash
 AGENT_REMOTE_PUBLIC_URL="ws://$(tailscale ip -4):8787/ws" npm start

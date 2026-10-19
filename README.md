@@ -185,7 +185,7 @@ Use the `WebSocket:` line printed by agentd:
 
 | Situation | Host URL |
 |---|---|
-| Phone on the same Wi-Fi | `ws://<Mac LAN IP>:8787/ws` (e.g. `ws://192.168.1.10:8787/ws`) |
+| Phone on the same Wi-Fi | `ws://<host LAN IP>:8787/ws` (e.g. `ws://192.168.1.10:8787/ws`) |
 | Tailscale | `ws://<tailscale IP>:8787/ws` |
 | Android emulator | `ws://10.0.2.2:8787/ws` |
 

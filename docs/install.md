@@ -119,7 +119,7 @@ ACP patch to `~/.agent-remote`.
 
 Manual entry:
 
-- **URL**: `ws://<Mac LAN IP>:8787/ws`
+- **URL**: `ws://<host LAN IP>:8787/ws`
 - **Token**: `cat ~/.agent-remote/token`
 
 Do not use `127.0.0.1` on the iPhone; that is the phone itself.

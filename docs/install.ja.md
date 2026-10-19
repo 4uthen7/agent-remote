@@ -59,7 +59,7 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 
 debuggable で、標準 Android debug key で署名されています。パッケージ名は
 `dev.fouruthent.agentremote` で、iOS 版とは別アプリとして共存します。エミュレータから
-Mac へは `ws://10.0.2.2:8787/ws`、実機からは agentd が表示する LAN / Tailscale の
+PC へは `ws://10.0.2.2:8787/ws`、実機からは agentd が表示する LAN / Tailscale の
 アドレスを使います。QR ペアリングと手入力は iOS と同じです。トークンは Android
 Keystore で暗号化されます。
 
@@ -123,7 +123,7 @@ npm start
 
 iPhone から見た `127.0.0.1` は iPhone 自身なので使えません。
 
-LAN 外から使う場合は、Mac と iPhone の両方を Tailscale に入れ、tailnet の URL で起動します:
+LAN 外から使う場合は、PC と iPhone の両方を Tailscale に入れ、tailnet の URL で起動します:
 
 ```bash
 AGENT_REMOTE_PUBLIC_URL="ws://$(tailscale ip -4):8787/ws" npm start
