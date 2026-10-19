@@ -41,6 +41,22 @@ APNs（プッシュ通知）は有料アカウントが必要です。
 このアプリは特別な entitlement を使わないため、無料の Apple ID でもインストールできます。
 このビルドにプッシュ通知は含まれていません。
 
+## Android debug APK
+
+リリースの `AgentRemote-android-debug.apk` をインストールするか、ソースからビルドします:
+
+```bash
+cd android
+./gradlew assembleDebug
+adb install -r app/build/outputs/apk/debug/app-debug.apk
+```
+
+debuggable で、標準 Android debug key で署名されています。パッケージ名は
+`dev.fouruthent.agentremote` で、iOS 版とは別アプリとして共存します。エミュレータから
+Mac へは `ws://10.0.2.2:8787/ws`、実機からは agentd が表示する LAN / Tailscale の
+アドレスを使います。QR ペアリングと手入力は iOS と同じです。トークンは Android
+Keystore で暗号化されます。
+
 ## ランタイムのログイン
 
 アプリからは DeepSeek Harness / Codex / Claude を起動できます。それぞれのログインが必要です:

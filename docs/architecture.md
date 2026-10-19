@@ -5,6 +5,7 @@
 | Component | Location | Responsibility |
 |---|---|---|
 | iOS app | `ios/AgentRemote` | Pairing, session list, timeline, approvals, model picker |
+| Android app | `android/app` | Jetpack Compose client with the same protocol and UI |
 | `agentd` | `agentd/src` | WebSocket API, token auth, runtime/session routing |
 | Runtime manager | `agentd/src/runtime` | Lazy adapter startup, session routing, normalized events |
 | DSH ACP adapter | `agentd/src/acp` | JSON-RPC over stdio, permission requests, tool-call correlation |
@@ -115,8 +116,17 @@ session shows a login error without stopping the daemon.
 - The transport is `ws://` on a trusted LAN or Tailscale. There is no application-layer
   E2E envelope or relay yet.
 - Approval decisions are one-shot and scoped to a tool call.
-- The iOS app stores the token in Keychain; the daemon stores it in
-  `~/.agent-remote/token` with user-only permissions.
+- The iOS app stores the token in Keychain; the Android app stores it in
+  Keystore-encrypted preferences; the daemon stores it in `~/.agent-remote/token`
+  with user-only permissions.
+
+## Android client
+
+`android/app` is a Kotlin + Jetpack Compose implementation of the same protocol:
+`OkHttp` WebSocket, `org.json` models, `EncryptedSharedPreferences` for the token, and
+ZXing for QR pairing. It mirrors the clean iOS screens (sessions, new session, timeline,
+approval card, settings). Debug builds are debuggable and signed with the standard
+Android debug key.
 
 ## Adding another runtime
 

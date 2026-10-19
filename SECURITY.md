@@ -15,6 +15,11 @@ include a live bearer token or private source code in the report.
 Claude) running with your macOS user's permissions. It is **not** a sandbox and it is
 not hardened to be exposed directly to the public internet.
 
+The Android client is distributed as a **debug build** for sideloading and inspection.
+It stores the bearer token with Android Keystore-encrypted preferences and permits
+cleartext `ws://` for LAN/Tailscale development. Do not treat the debug APK as a
+hardened store build.
+
 Assets:
 
 - the bearer token

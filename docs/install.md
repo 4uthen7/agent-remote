@@ -42,6 +42,22 @@ for **1 year** and is required for APNs/push later.
 The app uses no special entitlements, so a free Apple ID works. Push notifications are
 not part of this build.
 
+## Android debug APK
+
+Download `AgentRemote-android-debug.apk` from the release, or build it:
+
+```bash
+cd android
+./gradlew assembleDebug
+adb install -r app/build/outputs/apk/debug/app-debug.apk
+```
+
+The APK is debuggable and signed with the standard Android debug key. It installs as
+`dev.fouruthent.agentremote`, separate from the iOS bundle ID. On an emulator, the Mac
+is `ws://10.0.2.2:8787/ws`; on a phone use the LAN/Tailscale address printed by agentd.
+QR pairing and manual URL + token work the same as iOS. The token is encrypted with
+Android Keystore.
+
 ## Runtime logins
 
 The app can launch DeepSeek Harness, Codex, or Claude. Each runtime uses its own login:

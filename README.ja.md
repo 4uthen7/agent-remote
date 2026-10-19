@@ -5,15 +5,17 @@
 [![Release](https://img.shields.io/github/v/release/4uthen7/agent-remote?display_name=tag)](https://github.com/4uthen7/agent-remote/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/iOS-17%2B-black)](https://developer.apple.com/ios/)
+[![Platform](https://img.shields.io/badge/Android-8%2B-3DDC84)](https://developer.android.com/)
 [![Node](https://img.shields.io/badge/Node-22%2B-339933)](https://nodejs.org/)
 
-Mac 上で動くコーディングエージェントを、iPhone から操作するためのネイティブアプリです。
-iPhone は Node 製の小さなデーモン `agentd` にトークン認証付き WebSocket で接続し、
-エージェントの出力をリアルタイムで表示しながら、サンドボックス昇格の承認を
-スマートフォンから行えます。
+Mac 上で動くコーディングエージェントを、**iPhone / Android** から操作するための
+ネイティブアプリです。どちらも Node 製の小さなデーモン `agentd` にトークン認証付き
+WebSocket で接続し、エージェントの出力をリアルタイムで表示しながら、サンドボックス
+昇格の承認をスマートフォンから行えます。
 
-公開しているアプリは **日本語のクリーンなネイティブ UI** です。以前のサイバー調・3D の
-実験 UI はこのリポジトリには含まれていません。
+公開しているアプリは **日本語のクリーンなネイティブ UI** です。iOS は SwiftUI、
+Android は Jetpack Compose で実装しています。以前のサイバー調・3D の実験 UI は
+このリポジトリには含まれていません。
 
 | セッション | タイムライン |
 |---|---|
@@ -23,6 +25,10 @@ iPhone は Node 製の小さなデーモン `agentd` にトークン認証付き
 |---|---|
 | ![Connect](docs/screenshots/clean-connect.png) | ![Approval](docs/screenshots/clean-approval.png) |
 
+| Android セッション | Android 承認 |
+|---|---|
+| ![Android sessions](docs/screenshots/android-sessions.png) | ![Android approval](docs/screenshots/android-approval.png) |
+
 ## 機能
 
 - **3つのランタイム** — **DeepSeek Harness** / **OpenAI Codex** / **Claude Code** をセッションごとに選択
@@ -30,16 +36,17 @@ iPhone は Node 製の小さなデーモン `agentd` にトークン認証付き
 - **リアルタイム出力** — アシスタントの文章、思考、ツール呼び出し、コマンド出力、コンテキスト使用率
 - **ワンタップ承認** — 実行コマンド、作業ディレクトリ、理由、`danger-full-access` 昇格を確認して一度だけ許可
 - **モデル切替** — セッション画面から、選択中ランタイムのモデルを変更
-- **ネイティブ iOS UI** — SwiftUI、grouped list、Large Title、SF Symbols、システムのライト/ダーク、日本語ラベル
+- **ネイティブクライアント** — iOS は SwiftUI、Android は Jetpack Compose。grouped list、Large Title、システムのライト/ダーク、日本語ラベル
+- **デバッグ可能な Android APK** — debug 署名・debuggable。`adb install` で導入でき、ストア署名は不要
 - **アプリアイコン** — 接続画面の黒いターミナルマークを同梱
-- **安全なペアリング** — QR コードまたは URL + トークン。トークンは iOS の Keychain に保存
+- **安全なペアリング** — QR コードまたは URL + トークン。トークンは iOS の Keychain / Android の Keystore 暗号化領域に保存
 - **LAN / Tailscale** — Mac 側に inbound ポートを開けずに、tailnet 経由で外部から接続
 
 ## 構成
 
 ```
 ┌────────────────────┐        WebSocket (token)        ┌────────────────────┐
-│ iPhone             │◀───────────────────────────────▶│ agentd             │
+│ iPhone / Android   │◀───────────────────────────────▶│ agentd             │
 │ SwiftUI            │                                 │ Node + TypeScript  │
 └────────────────────┘                                 └─────────┬──────────┘
                                                                  │ 正規化イベント
@@ -67,7 +74,8 @@ upstream プロセスとして維持します。iPhone アプリは各ランタ�
   - **Claude Code** がログイン済み（`claude auth status`）または `ANTHROPIC_API_KEY`
 - Node.js 22 以上（開発は Node 24）
 - Xcode 26 以上と [XcodeGen](https://github.com/yonaskolb/XcodeGen)
-- Mac と同じ LAN、または両方を Tailscale に接続した iPhone
+- Mac と同じ LAN、または両方を Tailscale に接続した iPhone / Android 8 以上
+- ソースから Android をビルドする場合のみ JDK 17 + Android SDK 35
 
 DSH `0.2.1-rc.2`、Codex CLI `0.144.6`、Claude Code `2.1.216` / macOS で動作確認しています。
 Claude はログインまたは API キーが必要で、未認証の場合はアプリにエラーが表示されます。
@@ -88,9 +96,9 @@ WebSocket URL、トークン、ペアリング QR が表示されます。プロ
 - Codex のログインは `~/.codex`
 - Claude Code のログインは `~/.claude`
 - トークンと生成 ACP パッチは `~/.agent-remote`
-- 権限モードは **workspace-write**。サンドボックス昇格は必ず iPhone に承認要求が届きます
+- 権限モードは **workspace-write**。サンドボックス昇格は必ずスマートフォンに承認要求が届きます
 
-### 2. iOS アプリをビルド
+### 2. アプリをビルド
 
 ```bash
 cd ios
@@ -110,6 +118,19 @@ cd ..
 IPA は署名されていません。Sideloadly または AltStore が Apple ID で再署名します。
 詳細は [docs/install.ja.md](docs/install.ja.md)。
 
+#### Android
+
+リリースの `AgentRemote-android-debug.apk` をインストールするか、ソースからビルドします:
+
+```bash
+cd android
+./gradlew assembleDebug
+adb install -r app/build/outputs/apk/debug/app-debug.apk
+```
+
+**debug ビルド**（debuggable / 標準 Android debug key 署名）です。パッケージ名は
+`dev.fouruthent.agentremote` で、iOS 版とは別アプリとして共存します。
+
 ### 3. ペアリング
 
 アプリで **QR コードをスキャン** を開き、agentd のターミナルに出ている QR を読み取ります。
@@ -118,8 +139,8 @@ IPA は署名されていません。Sideloadly または AltStore が Apple ID 
 - URL: agentd が表示する LAN URL（例 `ws://192.168.1.10:8787/ws`）
 - トークン: `cat ~/.agent-remote/token`
 
-iPhone から見た `127.0.0.1` は iPhone 自身なので使えません。
-LAN 外から使う場合は、Mac と iPhone の両方を Tailscale に入れ、tailnet の IP を使います:
+スマートフォンから見た `127.0.0.1` は端末自身なので使えません。
+LAN 外から使う場合は、Mac とスマートフォンの両方を Tailscale に入れ、tailnet の IP を使います:
 
 ```bash
 AGENT_REMOTE_PUBLIC_URL="ws://$(tailscale ip -4):8787/ws" npm start
@@ -200,6 +221,7 @@ node test/smoke.mjs
 - [x] Claude Agent SDK アダプタ（`canUseTool` 承認）
 - [x] ランタイム選択（DSH / Codex / Claude）とランタイム別モデルメニュー
 - [x] ネイティブ iOS クライアント、QR ペアリング、Keychain、Tailscale 対応
+- [x] ネイティブ Android クライアント（Jetpack Compose）、QR ペアリング、Keystore、debug APK
 - [x] 日本語クリーン UI、署名なし IPA
 - [x] アプリアイコン（黒いターミナルマーク）
 - [ ] アプリ層 E2E + relay
@@ -212,6 +234,8 @@ node test/smoke.mjs
 agentd/                 Node デーモン（WebSocket + DSH / Codex / Claude）
 ios/                    SwiftUI アプリ（XcodeGen）
   AgentRemote/          クリーン UI + 共有クライアント
+android/                Jetpack Compose アプリ（Gradle）
+  app/                  ネイティブ Android クライアント
 scripts/build-ipa.sh    署名なし実機 IPA
 docs/                   インストール、構成、スクリーンショット
 ```

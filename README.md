@@ -5,14 +5,16 @@
 [![Release](https://img.shields.io/github/v/release/4uthen7/agent-remote?display_name=tag)](https://github.com/4uthen7/agent-remote/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/iOS-17%2B-black)](https://developer.apple.com/ios/)
+[![Platform](https://img.shields.io/badge/Android-8%2B-3DDC84)](https://developer.android.com/)
 [![Node](https://img.shields.io/badge/Node-22%2B-339933)](https://nodejs.org/)
 
-A native iOS remote for coding agents running on your own Mac. The iPhone app pairs
-with a small Node daemon (`agentd`) over a token-authenticated WebSocket, streams the
-agent's output, and lets you approve sandbox escalations from your phone.
+Native **iOS and Android** remotes for coding agents running on your own Mac. Both apps
+pair with a small Node daemon (`agentd`) over a token-authenticated WebSocket, stream the
+agent's output, and let you approve sandbox escalations from your phone.
 
-The public app uses the **clean native UI** with Japanese labels. The earlier
-cyber/3D visual experiment is not part of this repository.
+The public apps use the **clean native UI** with Japanese labels: SwiftUI on iOS and
+Jetpack Compose on Android. The earlier cyber/3D visual experiment is not part of this
+repository.
 
 | Sessions | Timeline |
 |---|---|
@@ -21,6 +23,10 @@ cyber/3D visual experiment is not part of this repository.
 | Connect | Approval |
 |---|---|
 | ![Connect](docs/screenshots/clean-connect.png) | ![Approval](docs/screenshots/clean-approval.png) |
+
+| Android sessions | Android approval |
+|---|---|
+| ![Android sessions](docs/screenshots/android-sessions.png) | ![Android approval](docs/screenshots/android-approval.png) |
 
 ## Features
 
@@ -31,10 +37,13 @@ cyber/3D visual experiment is not part of this repository.
 - **One-tap approvals** — review the exact command, working directory, justification and
   `danger-full-access` escalation before allowing it once.
 - **Model switching** — change the selected runtime's model from the session screen.
-- **Native iOS UI** — SwiftUI, grouped lists, large titles, SF Symbols, system light/dark,
-  Japanese labels, and a chat layout that stays out of the way.
+- **Native clients** — SwiftUI on iOS and Jetpack Compose on Android, with grouped lists,
+  large titles, system light/dark, Japanese labels and a chat layout that stays out of the way.
+- **Debuggable Android APK** — a debug-signed, debuggable APK for `adb install` and
+  inspection, with no store signing requirement.
 - **App icon** — the black terminal mark from the connect screen, bundled with the app.
-- **Secure pairing** — QR code or URL + bearer token; the token is stored in the iOS Keychain.
+- **Secure pairing** — QR code or URL + bearer token; the token is stored in the iOS
+  Keychain or Android Keystore-encrypted preferences.
 - **LAN or Tailscale** — no inbound ports on the Mac; put both devices on a tailnet for
   off-LAN use.
 
@@ -42,7 +51,7 @@ cyber/3D visual experiment is not part of this repository.
 
 ```
 ┌────────────────────┐        WebSocket (token)        ┌────────────────────┐
-│ iPhone             │◀───────────────────────────────▶│ agentd             │
+│ iPhone / Android   │◀───────────────────────────────▶│ agentd             │
 │ SwiftUI            │                                 │ Node + TypeScript  │
 └────────────────────┘                                 └─────────┬──────────┘
                                                                  │ normalized
@@ -74,7 +83,8 @@ correlation details.
   - **Claude Code** logged in (`claude auth status`) or `ANTHROPIC_API_KEY`
 - Node.js 22+ (developed on Node 24)
 - Xcode 26+ and [XcodeGen](https://github.com/yonaskolb/XcodeGen) for the iOS app
-- An iPhone on the same LAN as the Mac, or both devices on a Tailscale tailnet
+- An iPhone or Android 8+ device on the same LAN as the Mac, or both on a Tailscale tailnet
+- JDK 17 + Android SDK 35 only if you build the Android app from source
 
 Tested with DSH `0.2.1-rc.2`, Codex CLI `0.144.6`, and Claude Code `2.1.216` on macOS.
 Claude requires a Claude Code login or an API key; the app surfaces a clear error if
@@ -99,7 +109,7 @@ running. It uses:
 - `~/.agent-remote` for the bridge token and generated ACP patch
 - the **workspace-write** permission mode, so escalation requests still reach your phone
 
-### 2. Build the iOS app
+### 2. Build the apps
 
 ```bash
 cd ios
@@ -118,6 +128,19 @@ cd ..
 
 The IPA is unsigned; Sideloadly or AltStore signs it with your Apple ID. See
 [docs/install.md](docs/install.md).
+
+#### Android
+
+Download `AgentRemote-android-debug.apk` from the release, or build it:
+
+```bash
+cd android
+./gradlew assembleDebug
+adb install -r app/build/outputs/apk/debug/app-debug.apk
+```
+
+The APK is a **debug** build: debuggable and signed with the standard Android debug key.
+It installs as `dev.fouruthent.agentremote`, separate from the iOS bundle ID.
 
 ### 3. Pair
 
@@ -214,6 +237,7 @@ approves one command that writes a temporary file.
 - [x] Claude Agent SDK adapter with `canUseTool` approvals
 - [x] Runtime picker (DSH / Codex / Claude) and per-runtime model menus
 - [x] Native iOS client, QR pairing, Keychain, Tailscale-ready transport
+- [x] Native Android client (Jetpack Compose), QR pairing, Keystore, debuggable APK
 - [x] Clean Japanese UI, unsigned IPA packaging
 - [x] App icon (black terminal mark)
 - [ ] Application-level E2E + relay
@@ -226,6 +250,8 @@ approves one command that writes a temporary file.
 agentd/                 Node daemon (WebSocket + DSH / Codex / Claude)
 ios/                    SwiftUI app (XcodeGen)
   AgentRemote/          clean UI + shared client
+android/                Jetpack Compose app (Gradle)
+  app/                  native Android client
 scripts/build-ipa.sh    unsigned device IPA
 docs/                   install, architecture, screenshots
 ```
