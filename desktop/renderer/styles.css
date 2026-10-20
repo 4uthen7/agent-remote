@@ -496,3 +496,34 @@ code.secret { color: var(--muted); }
   .chat-card { height: calc(100vh - 280px); }
   .chat-back { display: inline-block; }
 }
+
+
+/* Setup checklist */
+.setup-list { display: flex; flex-direction: column; }
+.setup-row {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 0;
+  border-top: 1px solid var(--line);
+}
+.setup-row:first-child { border-top: 0; }
+.setup-dot {
+  width: 5px; height: 5px; border-radius: 50%;
+  background: var(--faint); flex: 0 0 auto;
+}
+.setup-dot.ok { background: var(--ok); }
+.setup-main { flex: 1; min-width: 0; }
+.setup-name { font-size: 12px; font-weight: 500; }
+.setup-detail {
+  color: var(--faint);
+  font-family: var(--mono);
+  font-size: 9.5px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.setup-summary {
+  margin-top: 9px;
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 9.5px;
+}

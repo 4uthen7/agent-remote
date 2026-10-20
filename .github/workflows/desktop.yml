@@ -1,10 +1,10 @@
-name: desktop
+name: release
 
 on:
   workflow_dispatch:
   push:
     tags:
-      - "v1.*"
+      - "v*"
 
 jobs:
   macos:
@@ -54,10 +54,74 @@ jobs:
             desktop/release/*.exe
           if-no-files-found: error
 
+  ios:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install XcodeGen
+        run: brew install xcodegen
+      - name: Generate Xcode project
+        working-directory: ios
+        run: xcodegen generate
+      - name: Build device app (unsigned)
+        working-directory: ios
+        run: |
+          xcodebuild \
+            -project AgentRemote.xcodeproj \
+            -scheme AgentRemote \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            build
+      - name: Package IPA
+        working-directory: ios
+        run: |
+          APP="build/Build/Products/Release-iphoneos/AgentRemote.app"
+          VERSION=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$APP/Info.plist")
+          rm -rf dist && mkdir -p dist/Payload
+          cp -R "$APP" dist/Payload/
+          (cd dist && zip -qry "AgentRemote-${VERSION}.ipa" Payload)
+      - uses: actions/upload-artifact@v4
+        with:
+          name: agent-remote-ios
+          path: ios/dist/*.ipa
+          if-no-files-found: error
+
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+      - name: Install Android SDK packages
+        run: |
+          echo "ANDROID_HOME=${ANDROID_HOME:-/usr/local/lib/android/sdk}" >> "$GITHUB_ENV"
+          echo "ANDROID_SDK_ROOT=${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}" >> "$GITHUB_ENV"
+          SDKMANAGER="${ANDROID_HOME:-/usr/local/lib/android/sdk}/cmdline-tools/latest/bin/sdkmanager"
+          yes | "$SDKMANAGER" --licenses >/dev/null || true
+          "$SDKMANAGER" "platforms;android-35" "build-tools;35.0.0"
+      - name: Build APK
+        working-directory: android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon
+      - name: Collect APK
+        run: |
+          mkdir -p dist
+          cp android/app/build/outputs/apk/debug/app-debug.apk dist/AgentRemote-android-debug.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: agent-remote-android
+          path: dist/*.apk
+          if-no-files-found: error
 
   release:
-    needs: [macos, windows]
-    if: startsWith(github.ref, 'refs/tags/v1.')
+    needs: [macos, windows, ios, android]
+    if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -68,9 +132,11 @@ jobs:
           path: artifacts
       - uses: softprops/action-gh-release@v2
         with:
-          body_path: docs/releases/v1.0.2.md
+          generate_release_notes: true
           files: |
             artifacts/agent-remote-macos/*.dmg
             artifacts/agent-remote-macos/*-mac.zip
             artifacts/agent-remote-windows/*.exe
+            artifacts/agent-remote-ios/*.ipa
+            artifacts/agent-remote-android/*.apk
           fail_on_unmatched_files: true

@@ -52,6 +52,7 @@ function render(next) {
   $("copy-token").disabled = !running;
 
   renderTools();
+  renderSetup();
   renderForm();
   renderLogs();
   window.hostState = state;
@@ -207,4 +208,70 @@ window.hostApi.getState().then(render).catch((error) => {
   console.error(error);
   text("error", String(error));
   $("error").classList.remove("hidden");
+});
+
+
+let setupBusy = false;
+
+function renderSetup() {
+  const list = $("setup-list");
+  if (!list) return;
+  const setup = state.setup || { checks: [] };
+  list.replaceChildren();
+  for (const check of setup.checks || []) {
+    const row = document.createElement("div");
+    row.className = "setup-row";
+
+    const dot = document.createElement("span");
+    dot.className = `setup-dot${check.ok ? " ok" : ""}`;
+
+    const main = document.createElement("div");
+    main.className = "setup-main";
+    const name = document.createElement("div");
+    name.className = "setup-name";
+    name.textContent = check.name;
+    const detail = document.createElement("div");
+    detail.className = "setup-detail";
+    detail.textContent = check.detail || "";
+    main.append(name, detail);
+
+    row.append(dot, main);
+    if (check.action) {
+      const button = document.createElement("button");
+      button.className = "ghost small";
+      button.textContent = check.action.label;
+      button.addEventListener("click", () => runSetupAction(check));
+      row.append(button);
+    }
+    list.append(row);
+  }
+  const summary = $("setup-summary");
+  summary.textContent = setup.checks?.length
+    ? `${setup.ready}/${setup.total} 準備完了${setup.ready === setup.total ? " — スマホから接続できます" : ""}`
+    : "";
+}
+
+async function runSetupAction(check) {
+  if (!check.action || setupBusy) return;
+  if (check.action.kind === "url") {
+    window.hostApi.openExternal(check.action.url);
+    return;
+  }
+  if (check.action.kind !== "install") return;
+  setupBusy = true;
+  const buttons = [...document.querySelectorAll("#setup-list button")];
+  buttons.forEach((button) => { button.disabled = true; });
+  try {
+    const result = await window.hostApi.installTool(check.id);
+    if (result?.state) render(result.state);
+  } catch (error) {
+    window.alert(error?.message || String(error));
+  } finally {
+    setupBusy = false;
+    buttons.forEach((button) => { button.disabled = false; });
+  }
+}
+
+$("refresh-setup")?.addEventListener("click", async () => {
+  render(await window.hostApi.refreshSetup());
 });

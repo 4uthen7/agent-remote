@@ -247,6 +247,107 @@ function versionOf(command) {
   });
 }
 
+const NPM_PACKAGES = {
+  dsh: "@deepseek-ai/dsh",
+  codex: "@openai/codex",
+  claude: "@anthropic-ai/claude-code",
+};
+const DOWNLOADS = {
+  tailscale: "https://tailscale.com/download",
+  node: "https://nodejs.org/en/download",
+  mobile: "https://github.com/4uthen7/agent-remote/releases/latest",
+  dsh: "https://github.com/deepseek-ai/deepseek-harness",
+  codex: "https://github.com/openai/codex",
+  claude: "https://docs.anthropic.com/en/docs/claude-code",
+};
+
+function tailscaleInfo() {
+  const bin = findTailscale();
+  if (!bin) return { installed: false, running: false, detail: "未導入", dns: "" };
+  try {
+    const status = JSON.parse(
+      execFileSync(bin, ["status", "--json"], { encoding: "utf8", timeout: 4000 }),
+    );
+    const running = status?.BackendState === "Running";
+    const dns = String(status?.Self?.DNSName || "").replace(/\.$/, "");
+    return {
+      installed: true,
+      running,
+      dns,
+      detail: running ? (dns || "ログイン済み") : "ログインしてください",
+    };
+  } catch {
+    return { installed: true, running: false, detail: "状態を取得できません", dns: "" };
+  }
+}
+
+function npmInfo() {
+  const bin = which("npm");
+  if (!bin) return { installed: false, version: "" };
+  try {
+    const version = execFileSync(bin, ["--version"], {
+      encoding: "utf8",
+      env: { ...process.env, PATH: toolPath() },
+      timeout: 3000,
+    }).trim();
+    return { installed: true, version };
+  } catch {
+    return { installed: true, version: "" };
+  }
+}
+
+function buildSetup(tools) {
+  const npm = npmInfo();
+  const tailscale = tailscaleInfo();
+  const checks = [
+    {
+      id: "tailscale",
+      name: "Tailscale",
+      ok: tailscale.running,
+      detail: tailscale.detail,
+      action: tailscale.running
+        ? null
+        : { kind: "url", label: tailscale.installed ? "ログイン" : "入手", url: DOWNLOADS.tailscale },
+    },
+    {
+      id: "node",
+      name: "Node.js / npm",
+      ok: npm.installed,
+      detail: npm.installed ? `npm ${npm.version || "ready"}` : "未検出",
+      action: npm.installed ? null : { kind: "url", label: "入手", url: DOWNLOADS.node },
+    },
+  ];
+  for (const tool of tools) {
+    const packageName = NPM_PACKAGES[tool.id];
+    let action = null;
+    if (!tool.installed) {
+      action = npm.installed && packageName
+        ? { kind: "install", label: "インストール" }
+        : { kind: "url", label: "手順", url: DOWNLOADS[tool.id] || DOWNLOADS.mobile };
+    }
+    checks.push({
+      id: tool.id,
+      name: tool.name,
+      ok: tool.installed,
+      detail: tool.installed ? (tool.version || tool.path || "検出済み") : "未検出",
+      action,
+    });
+  }
+  checks.push({
+    id: "mobile",
+    name: "スマホアプリ",
+    ok: true,
+    detail: "IPA / APK",
+    action: { kind: "url", label: "入手", url: DOWNLOADS.mobile },
+  });
+  const required = checks.filter((check) => check.id !== "mobile");
+  return {
+    checks,
+    ready: required.filter((check) => check.ok).length,
+    total: required.length,
+  };
+}
+
 async function detectTools() {
   const tools = [];
   for (const tool of SUPPORTED) {
@@ -269,6 +370,7 @@ async function detectTools() {
   }
   state.tools = tools;
   state.otherTools = otherTools;
+  state.setup = buildSetup(tools);
   broadcast();
   return tools;
 }
@@ -474,6 +576,33 @@ ipcMain.handle("host:get-state", () => state);
 ipcMain.handle("host:start", async () => { await startHost(); return state; });
 ipcMain.handle("host:stop", async () => { await stopHost(); return state; });
 ipcMain.handle("host:refresh-tools", async () => { await detectTools(); return state; });
+ipcMain.handle("host:refresh-setup", async () => { await detectTools(); return state; });
+ipcMain.handle("host:install-tool", async (_event, id) => {
+  const packageName = NPM_PACKAGES[String(id)];
+  if (!packageName) throw new Error("Unknown tool");
+  const npm = which("npm");
+  if (!npm) throw new Error("npm が見つかりません。Node.js を入れてください。");
+  pushLog(`installing ${packageName} ...`);
+  const code = await new Promise((resolve) => {
+    const child = spawn(npm, ["install", "-g", packageName], {
+      env: { ...process.env, PATH: toolPath() },
+      stdio: ["ignore", "pipe", "pipe"],
+      windowsHide: true,
+    });
+    child.stdout.on("data", (chunk) => pushLog(chunk.toString()));
+    child.stderr.on("data", (chunk) => pushLog(chunk.toString()));
+    child.on("error", (error) => { pushLog(`install failed: ${error.message}`); resolve(-1); });
+    child.on("close", (status) => resolve(status ?? -1));
+  });
+  await detectTools();
+  return { ok: code === 0, code, state };
+});
+ipcMain.handle("host:open-external", async (_event, url) => {
+  const value = String(url || "");
+  if (!/^https:\/\//.test(value)) return false;
+  await shell.openExternal(value);
+  return true;
+});
 ipcMain.handle("host:save-settings", async (_event, next) => {
   saveSettings(next || {});
   if (state.status === "running" || state.status === "starting") await startHost();

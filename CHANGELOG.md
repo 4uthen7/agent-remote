@@ -1,5 +1,15 @@
 # Changelog
 
+## v1.1.4 — 2026-10-20
+
+- **Desktop setup checklist**: Tailscale, Node/npm, DSH, Codex, Claude Code and
+  the phone app are checked in one list. Missing CLIs can be installed with one
+  click when npm is available; missing Tailscale/Node link to their downloads.
+  The host reports "5/5 準備完了" when the machine is ready.
+- **Release automation**: a tag now builds and attaches macOS, Windows, iOS
+  (unsigned IPA) and Android (debug APK) artifacts to the GitHub Release.
+- Desktop **1.0.10**, iOS **0.4.7**, agentd **0.6.1**.
+
 ## v1.1.3 — 2026-10-20
 
 - **Fix WebSocket 1009 loops**: snapshots are paged (100 events / ~512 KB) and
