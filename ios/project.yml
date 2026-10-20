@@ -36,8 +36,8 @@ targets:
       path: AgentRemote/Info.plist
       properties:
         CFBundleDisplayName: Agent Remote
-        CFBundleShortVersionString: "0.4.2"
-        CFBundleVersion: "8"
+        CFBundleShortVersionString: "0.4.3"
+        CFBundleVersion: "9"
         CFBundleIcons:
           CFBundlePrimaryIcon:
             CFBundleIconFiles:

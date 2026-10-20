@@ -197,6 +197,9 @@ final class AppStore: ObservableObject {
             self.hostReachable = reachable
         }
 
+        #if DEBUG
+        print("[ar] connecting \(url.absoluteString) attempt=\(reconnectAttempt)")
+        #endif
         client.connect(url: url)
 
         // A socket that opens but never authenticates must not hang forever.
@@ -211,6 +214,9 @@ final class AppStore: ObservableObject {
 
     private func lostConnection(_ reason: String?, generation: Int) {
         guard generation == connectionGeneration else { return }
+        #if DEBUG
+        print("[ar] lost: \(reason ?? "nil") reachable=\(String(describing: hostReachable))")
+        #endif
         watchdogTask?.cancel()
         // A first connect that fails on a transient network should also retry a
         // few times; a wrong token stops after three attempts instead of looping.
@@ -549,7 +555,7 @@ final class AppStore: ObservableObject {
                 timeline[index].isStreaming = false
             }
             currentSession?.status = "idle"
-            currentSession?.updatedAt = Int(Date().timeIntervalSince1970 * 1000)
+            currentSession?.updatedAt = Date().timeIntervalSince1970 * 1000
 
         case "notice":
             timeline.append(

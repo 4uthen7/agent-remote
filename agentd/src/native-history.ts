@@ -58,7 +58,7 @@ function listJsonl(root: string): string[] {
   return files
     .map((file) => {
       try {
-        return { file, mtime: statSync(file).mtimeMs, size: statSync(file).size };
+        return { file, mtime: Math.round(statSync(file).mtimeMs), size: statSync(file).size };
       } catch {
         return undefined;
       }
@@ -177,7 +177,7 @@ export function importDshHistory(): SessionRecord[] {
       const title = typeof titleRow.val === "string" ? titleRow.val : "";
       const cwd = typeof identity.cwd === "string" ? identity.cwd : "";
       const createdAt = safeTime(identity.createdAt, Date.now());
-      const updatedAt = statSync(file).mtimeMs;
+      const updatedAt = Math.round(statSync(file).mtimeMs);
       const id = path.basename(entry, ".json");
       const events: AgentEvent[] = [];
       const outline = (rows.turnOutline ?? {}) as Record<string, unknown>;

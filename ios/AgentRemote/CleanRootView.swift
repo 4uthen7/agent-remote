@@ -119,6 +119,12 @@ private struct ReconnectBanner: View {
                 VStack(alignment: .leading, spacing: 1) {
                     Text(title).font(.footnote.weight(.semibold))
                     Text(detail).font(.caption2).foregroundStyle(.secondary)
+                    if let reason = store.failureReason, !reason.isEmpty {
+                        Text(reason)
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                    }
                 }
                 Spacer(minLength: 8)
                 Button {

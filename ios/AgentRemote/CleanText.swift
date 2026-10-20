@@ -60,7 +60,7 @@ enum CleanText {
         }
     }
 
-    static func relativeTime(_ milliseconds: Int) -> String {
+    static func relativeTime(_ milliseconds: Double) -> String {
         let date = Date(timeIntervalSince1970: Double(milliseconds) / 1000)
         let formatter = RelativeDateTimeFormatter()
         formatter.locale = Locale(identifier: "ja_JP")

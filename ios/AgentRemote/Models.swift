@@ -14,8 +14,10 @@ struct SessionSummary: Codable, Identifiable, Equatable {
     var status: String
     var runtime: String
     var model: String?
-    var createdAt: Int
-    var updatedAt: Int
+    // agentd may emit fractional milliseconds (native-history mtime); decode
+    // as Double so one odd session cannot fail the whole hello_ok frame.
+    var createdAt: Double
+    var updatedAt: Double
     var archived: Bool?
     var resumable: Bool?
     var originHost: String?
