@@ -92,6 +92,9 @@ private struct ReconnectBanner: View {
     }
 
     private var detail: String {
+        if let reason = store.lastDropReason, !reason.isEmpty {
+            return String(reason.prefix(90))
+        }
         if let at = store.nextRetryAt {
             let seconds = max(0, Int(ceil(at.timeIntervalSinceNow)))
             return "\(seconds) 秒後に再試行 ・ 試行 \(store.reconnectAttempt)"

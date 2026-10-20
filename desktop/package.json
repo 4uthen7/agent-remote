@@ -1,6 +1,6 @@
 {
   "name": "@agent-remote/desktop",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "private": true,
   "description": "Agent Remote desktop host: bundles agentd, detects coding tools and shows a pairing QR.",
   "main": "main.js",

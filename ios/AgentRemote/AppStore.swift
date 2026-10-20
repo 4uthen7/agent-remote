@@ -30,6 +30,7 @@ final class AppStore: ObservableObject {
     private var reconnectTask: Task<Void, Never>?
     private var watchdogTask: Task<Void, Never>?
     @Published private(set) var reconnectAttempt = 0
+    @Published private(set) var lastDropReason: String?
     private var hadConnected = false
     private var pendingDemoCwd: String?
     private var pendingOpenSessionId: String?
@@ -214,6 +215,7 @@ final class AppStore: ObservableObject {
 
     private func lostConnection(_ reason: String?, generation: Int) {
         guard generation == connectionGeneration else { return }
+        lastDropReason = reason
         #if DEBUG
         print("[ar] lost: \(reason ?? "nil") reachable=\(String(describing: hostReachable))")
         #endif
@@ -416,6 +418,7 @@ final class AppStore: ObservableObject {
             hostReachable = true
             if let host = message.host {
                 connection = .connected(host)
+                lastDropReason = nil
             }
             sessions = message.sessions ?? []
             lastError = nil
@@ -505,6 +508,7 @@ final class AppStore: ObservableObject {
 
         case "error":
             lastError = message.message ?? "Unknown error"
+            lastDropReason = message.message
 
         default:
             break

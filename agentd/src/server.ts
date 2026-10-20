@@ -70,12 +70,14 @@ export function createAgentServer(config: AgentConfig, manager: RuntimeManager):
       if (client.authed) return;
       const token = String(message.token ?? "");
       if (!tokenEquals(config.token, token)) {
+        log("hello rejected: invalid token");
         send(client.ws, { type: "error", message: "Invalid token" });
         client.ws.close(1008, "Invalid token");
         return;
       }
       client.authed = true;
       client.deviceName = typeof message.deviceName === "string" ? message.deviceName : undefined;
+      log(`hello ok device=${client.deviceName ?? "unknown"}`);
       clearTimeout(client.helloTimeout);
       send(client.ws, {
         type: "hello_ok",
@@ -243,11 +245,15 @@ export function createAgentServer(config: AgentConfig, manager: RuntimeManager):
   }
 
   wss.on("connection", (ws: WebSocket) => {
+    log("client connected");
     const client: ClientState = {
       ws,
       authed: false,
       helloTimeout: setTimeout(() => {
-        if (!client.authed) ws.close(1008, "Hello timeout");
+        if (!client.authed) {
+          log("hello timeout");
+          ws.close(1008, "Hello timeout");
+        }
       }, 10_000),
     };
     client.helloTimeout.unref?.();
@@ -258,9 +264,10 @@ export function createAgentServer(config: AgentConfig, manager: RuntimeManager):
       handleMessage(client, text);
     });
 
-    ws.on("close", () => {
+    ws.on("close", (code, reason) => {
       clearTimeout(client.helloTimeout);
       clients.delete(ws);
+      log(`client closed code=${code} reason=${reason.toString() || "-"}`);
     });
 
     ws.on("error", (error) => {

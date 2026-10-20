@@ -1,5 +1,12 @@
 # Changelog
 
+## v1.1.2 — 2026-10-20
+
+- **Connection diagnostics**: agentd logs `client connected`, `hello ok device=…`,
+  invalid-token rejections, hello timeouts and close codes. The iOS reconnect
+  banner now shows the actual drop reason instead of only "認証を確認中".
+- Desktop **1.0.7**, iOS **0.4.5**.
+
 ## v1.1.1 — 2026-10-20
 
 - **Full DSH transcripts**: agentd now reads the authoritative
