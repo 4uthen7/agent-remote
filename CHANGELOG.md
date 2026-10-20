@@ -1,5 +1,13 @@
 # Changelog
 
+## v1.1.0 — 2026-10-20
+
+- **Desktop 1.0.4 — same visual language as the phone app**: the neon dark
+  dashboard is replaced by a neutral paper/ink layout with hairline rules,
+  monospaced labels, underlined tabs, dot status and a flat QR frame. Light and
+  dark schemes share one palette.
+- iOS **0.4.3** (unchanged), agentd **0.6.1**, Desktop **1.0.4**.
+
 All notable changes are published as Git tags and GitHub Releases.
 The format follows a simple semantic versioning scheme; app and daemon versions can differ
 within one release.

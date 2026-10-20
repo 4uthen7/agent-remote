@@ -1,6 +1,6 @@
 {
   "name": "@agent-remote/desktop",
-  "version": "1.0.1",
+  "version": "1.0.4",
   "private": true,
   "description": "Agent Remote desktop host: bundles agentd, detects coding tools and shows a pairing QR.",
   "main": "main.js",
@@ -26,7 +26,7 @@
   "build": {
     "appId": "dev.fouruthent.agentremote.host",
     "productName": "Agent Remote",
-    "copyright": "Copyright \u00a9 2026 4uthen7",
+    "copyright": "Copyright © 2026 4uthen7",
     "asar": true,
     "directories": {
       "output": "release",
