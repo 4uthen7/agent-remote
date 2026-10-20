@@ -19,6 +19,11 @@ WebSocket で接続し、エージェントの出力をリアルタイムで表�
 Android は Jetpack Compose で実装しています。以前のサイバー調・3D の実験 UI は
 このリポジトリには含まれていません。
 
+## スマホから使う（ビルド不要）
+
+ビルドせずに使い始める手順は **[docs/remote-access.ja.md](docs/remote-access.ja.md)** にまとめています。
+同じ Wi-Fi は不要で、Tailscale 経由で外出先から操作できます。iOS は ATS のため `wss://` が必要です。
+
 ## デスクトップホストアプリ（Node.js不要）
 
 もっとも簡単なホスト起動方法は **Agent Remote Desktop**（Windows / macOS）です。

@@ -17,6 +17,12 @@ The public apps use the **clean native UI** with Japanese labels: SwiftUI on iOS
 Jetpack Compose on Android. The earlier cyber/3D visual experiment is not part of this
 repository.
 
+## Use it from your phone (no build required)
+
+See **[docs/remote-access.md](docs/remote-access.md)** for the end-user setup.
+No same Wi-Fi is needed: the phone reaches the host over Tailscale. iOS
+requires `wss://` because of ATS.
+
 ## Desktop host app (no Node.js required)
 
 The easiest way to run the host is the **Agent Remote Desktop** app for Windows/macOS.
