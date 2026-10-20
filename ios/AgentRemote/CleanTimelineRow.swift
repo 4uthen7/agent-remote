@@ -31,11 +31,7 @@ struct CleanTimelineRow: View {
                     .foregroundStyle(.blue)
                     .padding(.top, 4)
 
-                (Text(item.text) + Text(item.isStreaming ? " ▍" : "").foregroundColor(.blue))
-                    .font(.body)
-                    .lineSpacing(2)
-                    .textSelection(.enabled)
-                    .fixedSize(horizontal: false, vertical: true)
+                MarkdownView(text: item.text, isStreaming: item.isStreaming)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
 

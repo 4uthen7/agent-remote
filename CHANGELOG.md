@@ -1,5 +1,16 @@
 # Changelog
 
+## v1.1.1 — 2026-10-20
+
+- **Full DSH transcripts**: agentd now reads the authoritative
+  `~/.dsh/sessions/**/session.vN.jsonl(.zstd)` log, decoding every zstd frame,
+  so history and live chat show complete user/assistant text and tool calls
+  instead of the truncated projection-cache outline.
+- **Markdown on iOS**: assistant replies render headings, bold and inline code,
+  bullet/numbered lists, quotes, tables and fenced code blocks, each code block
+  with a copy button.
+- iOS **0.4.4**, Desktop **1.0.6**, agentd **0.6.1**.
+
 ## v1.1.0 — 2026-10-20
 
 - **Desktop 1.0.4 — same visual language as the phone app**: the neon dark
