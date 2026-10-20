@@ -35,6 +35,26 @@ struct CleanTimelineView: View {
                         approvalBanner(approval)
                     }
 
+                    if store.historyHasMore {
+                        Button {
+                            store.loadOlderHistory()
+                        } label: {
+                            HStack(spacing: 6) {
+                                Image(systemName: "arrow.up")
+                                Text("以前の履歴を読み込む")
+                            }
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundStyle(.secondary)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 8)
+                            .background(
+                                Color(uiColor: .secondarySystemGroupedBackground),
+                                in: Capsule()
+                            )
+                        }
+                        .buttonStyle(.plain)
+                    }
+
                     ForEach(store.timeline) { item in
                         CleanTimelineRow(item: item)
                     }
@@ -48,9 +68,23 @@ struct CleanTimelineView: View {
                 .padding(.bottom, 16)
             }
             .scrollDismissesKeyboard(.interactively)
-            .onChange(of: store.timeline.count) { _, _ in
-                withAnimation(.easeOut(duration: 0.18)) {
-                    proxy.scrollTo("bottom", anchor: .bottom)
+            .overlay(alignment: .topTrailing) {
+                if store.historyHasMore {
+                    Button {
+                        store.loadOlderHistory()
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "arrow.up")
+                            Text("以前の履歴")
+                        }
+                        .font(.system(size: 11, weight: .medium))
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .background(.regularMaterial, in: Capsule())
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.top, 8)
+                    .padding(.trailing, 12)
                 }
             }
             .onChange(of: store.timeline.last?.text) { _, _ in

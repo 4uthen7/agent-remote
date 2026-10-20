@@ -204,6 +204,10 @@ struct ServerMessage: Decodable {
     let reason: String?
     let events: [AgentEvent]?
     let approvals: [Approval]?
+    let truncated: Bool?
+    let totalEvents: Int?
+    let hasMore: Bool?
+    let oldestSeq: Int?
 }
 
 struct ClientMessage: Encodable {
@@ -217,6 +221,7 @@ struct ClientMessage: Encodable {
     var approvalId: String?
     var optionId: String?
     var value: String?
+    var beforeSeq: Int?
 }
 
 struct TimelineItem: Identifiable, Equatable {

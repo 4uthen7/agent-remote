@@ -1,5 +1,14 @@
 # Changelog
 
+## v1.1.3 — 2026-10-20
+
+- **Fix WebSocket 1009 loops**: snapshots are paged (100 events / ~512 KB) and
+  individual event text is capped (64 KB), so one huge transcript or tool
+  output no longer closes the socket with "message too big".
+- **Load older history**: the phone requests older pages on demand and shows a
+  persistent "以前の履歴" control; full history is available page by page.
+- Desktop **1.0.9**, iOS **0.4.7**.
+
 ## v1.1.2 — 2026-10-20
 
 - **Connection diagnostics**: agentd logs `client connected`, `hello ok device=…`,

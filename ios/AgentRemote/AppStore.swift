@@ -8,6 +8,9 @@ final class AppStore: ObservableObject {
     @Published private(set) var sessions: [SessionSummary] = []
     @Published private(set) var currentSession: SessionSummary?
     @Published private(set) var timeline: [TimelineItem] = []
+    @Published private(set) var historyHasMore = false
+    private var historyOldestSeq: Int?
+    private var historyEvents: [AgentEvent] = []
     @Published private(set) var approvals: [Approval] = []
     @Published var activeApproval: Approval?
     @Published private(set) var configOptions: [ConfigOption] = []
@@ -77,6 +80,20 @@ final class AppStore: ObservableObject {
 
     var isBusy: Bool {
         currentSession?.status == "running" || currentSession?.status == "awaiting_approval"
+    }
+
+    func loadOlderHistory() {
+        guard historyHasMore,
+              let session = currentSession,
+              let oldest = historyOldestSeq else { return }
+        send(ClientMessage(type: "history", sessionId: session.id, beforeSeq: oldest))
+    }
+
+    private func clearTimelineState() {
+        timeline = []
+        historyEvents = []
+        historyHasMore = false
+        historyOldestSeq = nil
     }
 
     func connect() {
@@ -267,7 +284,7 @@ final class AppStore: ObservableObject {
         client = nil
         connection = .disconnected
         currentSession = nil
-        timeline = []
+        clearTimelineState()
         approvals = []
         activeApproval = nil
     }
@@ -319,7 +336,7 @@ final class AppStore: ObservableObject {
         selectedRuntime = selected
         lastCwd = trimmed
         currentSession = nil
-        timeline = []
+        clearTimelineState()
         approvals = []
         activeApproval = nil
         pendingOpenAfterCreate = true
@@ -332,7 +349,7 @@ final class AppStore: ObservableObject {
             return
         }
         currentSession = session
-        timeline = []
+        clearTimelineState()
         approvals = []
         activeApproval = nil
         pendingOpenAfterCreate = true
@@ -341,7 +358,7 @@ final class AppStore: ObservableObject {
 
     func select(_ session: SessionSummary) {
         currentSession = session
-        timeline = []
+        clearTimelineState()
         approvals = []
         activeApproval = nil
         configOptions = []
@@ -453,7 +470,17 @@ final class AppStore: ObservableObject {
                 upsert(session)
             }
             if let events = message.events {
+                historyEvents = events
                 timeline = buildTimeline(events)
+            }
+            historyHasMore = message.hasMore ?? false
+            historyOldestSeq = message.oldestSeq
+            if let session = message.session,
+               session.status != "running",
+               session.status != "awaiting_approval" {
+                for index in timeline.indices {
+                    timeline[index].isStreaming = false
+                }
             }
             approvals = message.approvals ?? []
             activeApproval = approvals.first
@@ -467,7 +494,26 @@ final class AppStore: ObservableObject {
             guard let sessionId = message.sessionId,
                   let event = message.event,
                   sessionId == currentSession?.id else { break }
+            if !historyEvents.contains(where: { $0.seq == event.seq }) {
+                historyEvents.append(event)
+            }
             apply(event)
+
+        case "history":
+            guard message.sessionId == currentSession?.id,
+                  let events = message.events else { break }
+            let known = Set(historyEvents.map(\.seq))
+            historyEvents = events.filter { !known.contains($0.seq) } + historyEvents
+            timeline = buildTimeline(historyEvents)
+            if let session = currentSession,
+               session.status != "running",
+               session.status != "awaiting_approval" {
+                for index in timeline.indices {
+                    timeline[index].isStreaming = false
+                }
+            }
+            historyHasMore = message.hasMore ?? false
+            historyOldestSeq = message.oldestSeq
 
         case "approval":
             guard let approval = message.approval else { break }
@@ -501,7 +547,7 @@ final class AppStore: ObservableObject {
             sessions.removeAll(where: { $0.id == sessionId })
             if currentSession?.id == sessionId {
                 currentSession = nil
-                timeline = []
+                clearTimelineState()
                 approvals = []
                 activeApproval = nil
             }

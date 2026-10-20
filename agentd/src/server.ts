@@ -43,6 +43,61 @@ export function createAgentServer(config: AgentConfig, manager: RuntimeManager):
 
   const wss = new WebSocketServer({ noServer: true, maxPayload: 8 * 1024 * 1024 });
 
+const SNAPSHOT_PAGE_EVENTS = 100;
+const SNAPSHOT_PAGE_BYTES = 512_000;
+const MAX_EVENT_TEXT = 64_000;
+
+function trimEvent(event: Record<string, unknown>): Record<string, unknown> {
+  const copy: Record<string, unknown> = { ...event };
+  for (const key of ["text", "output", "command", "message"]) {
+    const value = copy[key];
+    if (typeof value === "string" && value.length > MAX_EVENT_TEXT) {
+      const rest = value.length - MAX_EVENT_TEXT;
+      copy[key] = `${value.slice(0, MAX_EVENT_TEXT)}\n… (${rest} chars truncated)`;
+    }
+  }
+  return copy;
+}
+
+function pageEvents(
+  events: Record<string, unknown>[],
+  beforeSeq?: number,
+): { events: Record<string, unknown>[]; hasMore: boolean; oldestSeq?: number } {
+  const filtered = beforeSeq == null
+    ? events
+    : events.filter((event) => Number(event.seq ?? 0) < beforeSeq);
+  let bytes = 0;
+  let start = filtered.length;
+  for (let index = filtered.length - 1; index >= 0; index -= 1) {
+    const size = JSON.stringify(filtered[index]).length;
+    if (bytes + size > SNAPSHOT_PAGE_BYTES && start < filtered.length) break;
+    bytes += size;
+    start = index;
+    if (filtered.length - start >= SNAPSHOT_PAGE_EVENTS) break;
+  }
+  const page = filtered.slice(start);
+  return {
+    events: page,
+    hasMore: start > 0,
+    oldestSeq: page.length ? Number(page[0].seq ?? 0) : undefined,
+  };
+}
+
+function sendSnapshot(client: ClientState, snapshot: Record<string, unknown>): void {
+  const all = Array.isArray(snapshot.events)
+    ? (snapshot.events as Record<string, unknown>[]).map(trimEvent)
+    : [];
+  const page = pageEvents(all);
+  send(client.ws, {
+    ...snapshot,
+    type: "snapshot",
+    events: page.events,
+    hasMore: page.hasMore,
+    oldestSeq: page.oldestSeq,
+    totalEvents: all.length,
+  });
+}
+
   function broadcast(payload: unknown, predicate?: (client: ClientState) => boolean): void {
     for (const client of clients.values()) {
       if (!client.authed) continue;
@@ -110,7 +165,7 @@ export function createAgentServer(config: AgentConfig, manager: RuntimeManager):
               send(client.ws, { type: "session", session });
               sendSessionList();
               const snapshot = manager.snapshot(session.id);
-              if (snapshot) send(client.ws, { type: "snapshot", ...snapshot });
+              if (snapshot) sendSnapshot(client, snapshot as unknown as Record<string, unknown>);
             })
             .catch((error: unknown) => {
               send(client.ws, {
@@ -143,7 +198,7 @@ export function createAgentServer(config: AgentConfig, manager: RuntimeManager):
               send(client.ws, { type: "session", session });
               sendSessionList();
               const snapshot = manager.snapshot(session.id);
-              if (snapshot) send(client.ws, { type: "snapshot", ...snapshot });
+              if (snapshot) sendSnapshot(client, snapshot as unknown as Record<string, unknown>);
             })
             .catch((error: unknown) => {
               send(client.ws, {
@@ -168,7 +223,7 @@ export function createAgentServer(config: AgentConfig, manager: RuntimeManager):
           break;
         }
         client.sessionId = sessionId;
-        send(client.ws, { type: "snapshot", ...snapshot });
+        sendSnapshot(client, snapshot as unknown as Record<string, unknown>);
         break;
       }
 
@@ -234,6 +289,28 @@ export function createAgentServer(config: AgentConfig, manager: RuntimeManager):
         break;
       }
 
+      case "history": {
+        const sessionId = String(message.sessionId ?? "");
+        const beforeSeq = Number(message.beforeSeq ?? 0);
+        const snapshot = manager.snapshot(sessionId) as unknown as Record<string, unknown> | undefined;
+        if (!snapshot) {
+          send(client.ws, { type: "error", message: "Unknown session" });
+          break;
+        }
+        const all = Array.isArray(snapshot.events)
+          ? (snapshot.events as Record<string, unknown>[]).map(trimEvent)
+          : [];
+        const page = pageEvents(all, beforeSeq > 0 ? beforeSeq : undefined);
+        send(client.ws, {
+          type: "history",
+          sessionId,
+          events: page.events,
+          hasMore: page.hasMore,
+          oldestSeq: page.oldestSeq,
+        });
+        break;
+      }
+
       case "ping":
         send(client.ws, { type: "pong", at: now() });
         break;
@@ -281,7 +358,7 @@ export function createAgentServer(config: AgentConfig, manager: RuntimeManager):
     sendSessionList();
   });
   manager.on("event", ({ sessionId, event }) => {
-    broadcast({ type: "event", sessionId, event });
+    broadcast({ type: "event", sessionId, event: trimEvent(event as unknown as Record<string, unknown>) });
   });
   manager.on("approval", (approval) => {
     broadcast({ type: "approval", approval });
