@@ -114,7 +114,15 @@ export class RuntimeManager extends EventEmitter {
     const archived = (this.store?.list() ?? [])
       .filter((record) => !liveIds.has(record.id))
       .map((record) => this.store!.summary(record));
-    return [...live, ...archived].sort((a, b) => b.updatedAt - a.updatedAt);
+    // Emit integer milliseconds: native-history mtimes and older persisted
+    // records can carry fractions, which strict Int decoders reject.
+    return [...live, ...archived]
+      .map((session) => ({
+        ...session,
+        createdAt: Math.round(session.createdAt),
+        updatedAt: Math.round(session.updatedAt),
+      }))
+      .sort((a, b) => b.updatedAt - a.updatedAt);
   }
 
   getSession(sessionId: string): SessionRecord | undefined {

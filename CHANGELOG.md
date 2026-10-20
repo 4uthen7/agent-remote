@@ -6,7 +6,13 @@
   dashboard is replaced by a neutral paper/ink layout with hairline rules,
   monospaced labels, underlined tabs, dot status and a flat QR frame. Light and
   dark schemes share one palette.
-- iOS **0.4.3** (unchanged), agentd **0.6.1**, Desktop **1.0.4**.
+- **Tailscale-aware desktop host**: when Tailscale is present, the desktop app
+  runs `tailscale serve --https=8443` and publishes `wss://<host>:8443/ws`, so
+  the QR works on iOS (ATS rejects `ws://`). Without Tailscale it falls back to
+  the LAN `ws://` URL.
+- **Integer session timestamps**: `agentd` now rounds `createdAt`/`updatedAt`
+  for every listed session, so strict Int decoders no longer fail `hello_ok`.
+- iOS **0.4.3** (unchanged), agentd **0.6.1**, Desktop **1.0.5**.
 
 All notable changes are published as Git tags and GitHub Releases.
 The format follows a simple semantic versioning scheme; app and daemon versions can differ

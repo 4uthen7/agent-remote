@@ -11,6 +11,7 @@ const pkg = require("./package.json");
 
 const APP_VERSION = pkg.version;
 const MAX_LOGS = 500;
+const TAILSCALE_HTTPS_PORT = 8443;
 const SUPPORTED = [
   { id: "dsh", name: "DeepSeek Harness", short: "DSH", command: "dsh" },
   { id: "codex", name: "Codex", short: "Codex", command: "codex" },
@@ -181,6 +182,46 @@ function which(command) {
   }
 }
 
+
+function findTailscale() {
+  const candidates = [
+    "/Applications/Tailscale.app/Contents/MacOS/Tailscale",
+    "/usr/local/bin/tailscale",
+    "/opt/homebrew/bin/tailscale",
+    "/usr/bin/tailscale",
+  ];
+  for (const candidate of candidates) {
+    if (fs.existsSync(candidate)) return candidate;
+  }
+  try {
+    return execFileSync("which", ["tailscale"], { encoding: "utf8" }).trim() || null;
+  } catch {
+    return null;
+  }
+}
+
+// iOS blocks ws:// (ATS), so when Tailscale is available publish a wss URL
+// through `tailscale serve`. Falls back to the LAN ws URL.
+function tailscaleWssUrl(port) {
+  const bin = findTailscale();
+  if (!bin) return null;
+  try {
+    const status = JSON.parse(
+      execFileSync(bin, ["status", "--json"], { encoding: "utf8", timeout: 4000 }),
+    );
+    const dns = String(status?.Self?.DNSName || "").replace(/\.$/, "");
+    if (!dns) return null;
+    execFileSync(bin, ["serve", "--bg", `--https=${TAILSCALE_HTTPS_PORT}`, String(port)], {
+      encoding: "utf8",
+      timeout: 8000,
+    });
+    return `wss://${dns}:${TAILSCALE_HTTPS_PORT}/ws`;
+  } catch (error) {
+    pushLog(`tailscale: ${error instanceof Error ? error.message : String(error)}`);
+    return null;
+  }
+}
+
 function versionOf(command) {
   return new Promise((resolve) => {
     try {
@@ -302,7 +343,8 @@ async function startHost() {
     const ips = lanAddresses();
     const ip = chooseIp(ips);
     const token = readToken();
-    setState({ port, ip, ips, token });
+    const publicUrl = tailscaleWssUrl(port) || `ws://${ip}:${port}/ws`;
+    setState({ port, ip, ips, token, publicUrl });
     const entry = agentdEntry();
     if (!fs.existsSync(entry)) throw new Error(`agentd が見つかりません: ${entry}`);
     const byId = Object.fromEntries(tools.map((tool) => [tool.id, tool]));
@@ -314,7 +356,7 @@ async function startHost() {
       AGENT_REMOTE_TOKEN: token,
       AGENT_REMOTE_PORT: String(port),
       AGENT_REMOTE_BIND: "0.0.0.0",
-      AGENT_REMOTE_PUBLIC_URL: `ws://${ip}:${port}/ws`,
+      AGENT_REMOTE_PUBLIC_URL: publicUrl,
       AGENT_REMOTE_ROOTS: settings.roots || os.homedir(),
       AGENT_REMOTE_SYNC_DIR: sessionsDir,
     };
@@ -360,12 +402,12 @@ async function startHost() {
     if (!healthy || generation !== startGeneration) {
       throw new Error("agentd の起動がタイムアウトしました。ログを確認してください。");
     }
-    const pairUrl = `agentremote://pair?url=${encodeURIComponent(`ws://${ip}:${port}/ws`)}&token=${encodeURIComponent(token)}`;
+    const pairUrl = `agentremote://pair?url=${encodeURIComponent(publicUrl)}&token=${encodeURIComponent(token)}`;
     const qr = await QRCode.toDataURL(pairUrl, {
       width: 360,
       margin: 1,
       errorCorrectionLevel: "M",
-      color: { dark: "#071018", light: "#ffffff" },
+      color: { dark: "#161618", light: "#ffffff" },
     });
     setState({
       status: "running",
@@ -374,6 +416,7 @@ async function startHost() {
       ip,
       ips,
       token,
+      publicUrl,
       pairUrl,
       qr,
       paths: { data: dataHome, sessions: sessionsDir },

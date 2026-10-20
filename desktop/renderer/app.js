@@ -46,7 +46,7 @@ function render(next) {
   }
 
   const port = state.port || 8787;
-  text("host-url", state.ip ? `ws://${state.ip}:${port}/ws` : "—");
+  text("host-url", state.publicUrl || (state.ip ? `ws://${state.ip}:${port}/ws` : "—"));
   text("token", state.token || "—");
   $("copy-url").disabled = !running;
   $("copy-token").disabled = !running;
