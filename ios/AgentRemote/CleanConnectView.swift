@@ -6,6 +6,8 @@ struct CleanConnectView: View {
     @ObservedObject private var appLock = AppLock.shared
     @FocusState private var focusedField: Field?
     @State private var showingScanner = false
+    @State private var diagnosing = false
+    @State private var diagnosis: String?
     @State private var showingSettings = false
     @State private var showToken = false
 
@@ -134,6 +136,29 @@ struct CleanConnectView: View {
                         Label("QR コードをスキャン", systemImage: "qrcode.viewfinder")
                     }
                     .buttonStyle(CleanSecondaryButtonStyle())
+
+                    Button {
+                        diagnosing = true
+                        Task {
+                            diagnosis = await store.diagnose()
+                            diagnosing = false
+                        }
+                    } label: {
+                        HStack(spacing: 8) {
+                            if diagnosing { ProgressView() }
+                            Text("接続テスト（ホストに届くか）")
+                        }
+                    }
+                    .buttonStyle(CleanSecondaryButtonStyle())
+                    .disabled(diagnosing)
+
+                    if let diagnosis {
+                        Text(diagnosis)
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                            .textSelection(.enabled)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
                 }
             }
             .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))

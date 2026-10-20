@@ -16,6 +16,10 @@ final class AppStore: ObservableObject {
     @Published var lastError: String?
     @Published var path: [String] = []
 
+    /// Reconnection telemetry the UI renders instead of a blocking alert.
+    @Published private(set) var nextRetryAt: Date?
+    @Published private(set) var hostReachable: Bool?
+
     @AppStorage("serverURL") var serverURL: String = "ws://127.0.0.1:8787/ws"
     @Published var token: String = ""
     @AppStorage("lastCwd") var lastCwd: String = "~/Documents"
@@ -24,7 +28,8 @@ final class AppStore: ObservableObject {
     private var client: AgentClient?
     private var connectionGeneration = 0
     private var reconnectTask: Task<Void, Never>?
-    private var reconnectAttempt = 0
+    private var watchdogTask: Task<Void, Never>?
+    @Published private(set) var reconnectAttempt = 0
     private var hadConnected = false
     private var pendingDemoCwd: String?
     private var pendingOpenSessionId: String?
@@ -78,6 +83,79 @@ final class AppStore: ObservableObject {
         openSocket(isReconnect: false)
     }
 
+    var isReconnecting: Bool {
+        switch connection {
+        case .connecting, .failed: return true
+        case .disconnected, .connected: return false
+        }
+    }
+
+    var failureReason: String? {
+        if case .failed(let reason) = connection { return reason }
+        return nil
+    }
+
+    /// Skip the backoff wait and try again now.
+    func retryNow() {
+        reconnectTask?.cancel()
+        reconnectTask = nil
+        nextRetryAt = nil
+        openSocket(isReconnect: true)
+    }
+
+    /// Foreground/background hook: retry immediately on return, stop timers
+    /// while suspended.
+    func setActive(_ active: Bool) {
+        if active {
+            if !token.isEmpty, case .failed = connection {
+                retryNow()
+            }
+        } else {
+            reconnectTask?.cancel()
+            reconnectTask = nil
+            nextRetryAt = nil
+        }
+    }
+
+    /// Human-readable reachability result for the connect screen.
+    func diagnose() async -> String {
+        guard let health = Self.healthURL(serverURL) else { return "URL が不正です" }
+        var request = URLRequest(url: health)
+        request.timeoutInterval = 4
+        request.cachePolicy = .reloadIgnoringLocalCacheData
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
+            let code = (response as? HTTPURLResponse)?.statusCode ?? -1
+            let body = String(data: data.prefix(160), encoding: .utf8) ?? ""
+            return "HTTP \(code) \(body)"
+        } catch {
+            return "失敗: \(error.localizedDescription)"
+        }
+    }
+
+    nonisolated private static func healthURL(_ raw: String) -> URL? {
+        guard let url = URL(string: raw.trimmingCharacters(in: .whitespacesAndNewlines)),
+              var components = URLComponents(url: url, resolvingAgainstBaseURL: false),
+              let scheme = url.scheme, scheme == "ws" || scheme == "wss" else { return nil }
+        components.scheme = scheme == "wss" ? "https" : "http"
+        components.path = "/health"
+        components.query = nil
+        return components.url
+    }
+
+    nonisolated private static func probeHealth(_ raw: String) async -> Bool {
+        guard let url = healthURL(raw) else { return false }
+        var request = URLRequest(url: url)
+        request.timeoutInterval = 2.5
+        request.cachePolicy = .reloadIgnoringLocalCacheData
+        do {
+            let (_, response) = try await URLSession.shared.data(for: request)
+            return (response as? HTTPURLResponse)?.statusCode == 200
+        } catch {
+            return false
+        }
+    }
+
     private func openSocket(isReconnect: Bool) {
         guard let url = URL(string: serverURL.trimmingCharacters(in: .whitespacesAndNewlines)),
               let scheme = url.scheme,
@@ -108,12 +186,35 @@ final class AppStore: ObservableObject {
                 self.handle(event)
             }
         }
+        nextRetryAt = nil
+
+        // Reachability probe beside the socket: distinguishes "host down" from
+        // "socket/auth failed" and reports it within ~2.5s.
+        let rawURL = serverURL
+        Task { [weak self] in
+            let reachable = await Self.probeHealth(rawURL)
+            guard let self, generation == self.connectionGeneration else { return }
+            self.hostReachable = reachable
+        }
+
         client.connect(url: url)
+
+        // A socket that opens but never authenticates must not hang forever.
+        watchdogTask?.cancel()
+        watchdogTask = Task { [weak self] in
+            try? await Task.sleep(for: .seconds(6))
+            guard !Task.isCancelled, let self, generation == self.connectionGeneration else { return }
+            if case .connected = self.connection { return }
+            self.lostConnection("ホストから応答がありません", generation: generation)
+        }
     }
 
     private func lostConnection(_ reason: String?, generation: Int) {
         guard generation == connectionGeneration else { return }
-        if hadConnected || !path.isEmpty || currentSession != nil {
+        watchdogTask?.cancel()
+        // A first connect that fails on a transient network should also retry a
+        // few times; a wrong token stops after three attempts instead of looping.
+        if hadConnected || !path.isEmpty || currentSession != nil || reconnectAttempt < 3 {
             scheduleReconnect(generation, reason: reason)
         } else {
             connection = .failed(reason ?? "Disconnected")
@@ -126,7 +227,9 @@ final class AppStore: ObservableObject {
         let delay = min(2 << min(reconnectAttempt, 3), 15)
         reconnectAttempt += 1
         connection = .connecting
-        lastError = "再接続中…\n\(reason ?? "")"
+        nextRetryAt = Date().addingTimeInterval(Double(delay))
+        // No alert: the root view renders a banner with this state.
+        lastError = nil
         reconnectTask = Task { [weak self] in
             try? await Task.sleep(for: .seconds(delay))
             guard !Task.isCancelled, let self, generation == self.connectionGeneration else { return }
@@ -147,6 +250,9 @@ final class AppStore: ObservableObject {
         connectionGeneration += 1
         reconnectTask?.cancel()
         reconnectTask = nil
+        watchdogTask?.cancel()
+        watchdogTask = nil
+        nextRetryAt = nil
         hadConnected = false
         reconnectAttempt = 0
         client?.disconnect()
@@ -296,6 +402,12 @@ final class AppStore: ObservableObject {
     private func handle(_ message: ServerMessage) {
         switch message.type {
         case "hello_ok":
+            watchdogTask?.cancel()
+            reconnectTask?.cancel()
+            reconnectTask = nil
+            nextRetryAt = nil
+            reconnectAttempt = 0
+            hostReachable = true
             if let host = message.host {
                 connection = .connected(host)
             }
