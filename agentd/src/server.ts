@@ -34,6 +34,16 @@ function normalizeRuntime(value: unknown): RuntimeId {
 export function createAgentServer(config: AgentConfig, manager: RuntimeManager): AgentServer {
   const clients = new Map<WebSocket, ClientState>();
   const startedAt = now();
+  const HISTORY_REFRESH_MS = 30_000;
+  let lastHistoryRefreshAt = 0;
+
+  function refreshNativeHistory(): void {
+    if (Date.now() - lastHistoryRefreshAt < HISTORY_REFRESH_MS) return;
+    lastHistoryRefreshAt = Date.now();
+    void manager.importNativeHistory().catch((error: unknown) => {
+      log(`native history refresh failed: ${error instanceof Error ? error.message : String(error)}`);
+    });
+  }
 
   const host: HostInfo = {
     name: config.hostName,
@@ -140,6 +150,9 @@ function sendSnapshot(client: ClientState, snapshot: Record<string, unknown>): v
         version: config.version,
         sessions: manager.listSessions(),
       });
+      // Pick up sessions created in DSH/Codex/Claude outside this host since
+      // startup. The import broadcasts a fresh session list when it finishes.
+      refreshNativeHistory();
       return;
     }
 
@@ -152,6 +165,10 @@ function sendSnapshot(client: ClientState, snapshot: Record<string, unknown>): v
     switch (type) {
       case "list_sessions":
         send(client.ws, { type: "sessions", sessions: manager.listSessions() });
+        break;
+
+      case "refresh_history":
+        refreshNativeHistory();
         break;
 
       case "create_session": {

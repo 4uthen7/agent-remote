@@ -12,6 +12,7 @@ export class RuntimeManager extends EventEmitter {
   private readonly sessionRuntime = new Map<string, RuntimeId>();
   private readonly starting = new Map<RuntimeId, Promise<RuntimeAdapter>>();
   private readonly persistTimers = new Map<string, NodeJS.Timeout>();
+  private importPromise?: Promise<number>;
 
   constructor(
     private readonly factories: Partial<Record<RuntimeId, RuntimeFactory>>,
@@ -176,7 +177,18 @@ export class RuntimeManager extends EventEmitter {
     return session;
   }
 
-  async importNativeHistory(): Promise<number> {
+  importNativeHistory(): Promise<number> {
+    if (!this.store) return Promise.resolve(0);
+    // A client reconnect can ask for a refresh while startup is still
+    // importing; share the single pass instead of scanning history twice.
+    if (this.importPromise) return this.importPromise;
+    this.importPromise = this.performNativeImport().finally(() => {
+      this.importPromise = undefined;
+    });
+    return this.importPromise;
+  }
+
+  private async performNativeImport(): Promise<number> {
     if (!this.store) return 0;
     let imported = 0;
     const existing = new Set(this.store.list().map((record) => `${record.runtime}:${record.id}`));
