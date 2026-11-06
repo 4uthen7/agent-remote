@@ -1,6 +1,6 @@
 {
   "name": "@agent-remote/desktop",
-  "version": "1.0.10",
+  "version": "1.0.11",
   "private": true,
   "description": "Agent Remote desktop host: bundles agentd, detects coding tools and shows a pairing QR.",
   "main": "main.js",
@@ -13,7 +13,8 @@
     "dist:win": "npm run prepare-agentd && electron-builder --win nsis portable",
     "dist:linux": "npm run prepare-agentd && electron-builder --linux AppImage",
     "dist:win:x64": "npm run prepare-agentd && electron-builder --win nsis portable --x64",
-    "dist:win:arm64": "npm run prepare-agentd && electron-builder --win nsis portable --arm64"
+    "dist:win:arm64": "npm run prepare-agentd && electron-builder --win nsis portable --arm64",
+    "test": "node --test test/*.test.js"
   },
   "dependencies": {
     "qrcode": "^1.5.4",
@@ -36,7 +37,8 @@
       "main.js",
       "preload.js",
       "renderer/**/*",
-      "package.json"
+      "package.json",
+      "update-check.js"
     ],
     "extraResources": [
       {

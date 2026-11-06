@@ -61,6 +61,10 @@ Build instructions and limitations: [desktop/README.md](desktop/README.md).
 
 - **Desktop one-click host** — Windows `.exe` / macOS `.dmg` with Node and agentd
   bundled, tool detection and a QR on launch; the phone apps are unchanged.
+- **In-app update check** — the desktop host compares its build with the latest
+  GitHub release at launch and every six hours, and links straight to the release page.
+- **Full desktop history** — archived DSH transcripts are paged; the desktop timeline
+  loads older turns on demand without losing your place.
 - **Three runtimes** — choose **DeepSeek Harness**, **OpenAI Codex**, or **Claude Code**
   per session from the same app.
 - **Session control** — list, create, resume and close sessions.

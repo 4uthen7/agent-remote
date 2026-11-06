@@ -37,6 +37,17 @@ The build copies agentd's compiled output and production dependencies into
 - Windows builds are unsigned; SmartScreen may ask for confirmation.
 - The macOS artifact is Apple Silicon. Windows artifacts are x64.
 
+## Updates
+
+The host checks the latest GitHub Release on launch and every six hours. When a newer
+desktop build is published, a quiet **更新** control appears in the header and opens the
+release page. **更新を確認** in the footer runs the check manually. Builds older than
+desktop 1.0.11 do not include this check, so update them once from the release page.
+
+macOS and Windows builds are unsigned; download the new installer, replace the app and
+retire the previous copy. The phone clients are distributed as IPA/APK from the same
+release.
+
 ## Security
 
 - The bearer token is generated at `app.getPath("userData")/token` with mode `0600` and

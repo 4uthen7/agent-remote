@@ -15,6 +15,10 @@
   let timeline = [];
   let approvals = [];
   let lastStreamingAssistant = false;
+  let historyHasMore = false;
+  let historyOldestSeq = null;
+  let historyLoading = false;
+  let lastHistoryRefreshAt = 0;
   let view = "host";
 
   function hostState() { return window.hostState || {}; }
@@ -24,7 +28,14 @@
     document.querySelectorAll(".tab").forEach((tab) => tab.classList.toggle("active", tab.dataset.view === next));
     $("host-view").classList.toggle("hidden", next !== "host");
     $("sessions-view").classList.toggle("hidden", next !== "sessions");
-    if (next === "sessions") renderSessions();
+    if (next === "sessions") {
+      renderSessions();
+      // Sessions created in DSH/Codex/Claude while this app stayed open are
+      // not in the archive yet. Re-scan at most once a minute on tab open.
+      if (Date.now() - lastHistoryRefreshAt > 60_000 && send({ type: "refresh_history" })) {
+        lastHistoryRefreshAt = Date.now();
+      }
+    }
   }
 
   document.querySelectorAll(".tab").forEach((tab) => {
@@ -122,8 +133,24 @@
         lastStreamingAssistant = false;
         for (const event of message.events || []) applyEvent(event, true);
         approvals = message.approvals || [];
+        historyOldestSeq = oldestSeqOf(message);
+        historyHasMore = Boolean(message.hasMore) && historyOldestSeq != null;
+        historyLoading = false;
         renderSessions();
         renderChat();
+        break;
+      case "history":
+        if (message.sessionId && current?.id === message.sessionId) {
+          const previous = timeline;
+          timeline = [];
+          lastStreamingAssistant = false;
+          for (const event of message.events || []) applyEvent(event, true);
+          timeline = [...timeline, ...previous];
+          historyOldestSeq = oldestSeqOf(message);
+          historyHasMore = Boolean(message.hasMore) && historyOldestSeq != null;
+          historyLoading = false;
+          renderChat(true);
+        }
         break;
       case "event":
         if (message.sessionId && current?.id === message.sessionId) {
@@ -159,6 +186,9 @@
           current = null;
           timeline = [];
           approvals = [];
+          historyHasMore = false;
+          historyOldestSeq = null;
+          historyLoading = false;
         }
         renderSessions();
         renderChat();
@@ -266,7 +296,7 @@
         const title = el("div", "session-item-title", session.title || "Session");
         const meta = el("div", "session-item-meta");
         meta.append(
-          el("span", `pill ${session.archived ? "archived" : "live"}`, session.archived ? (session.resumable ? "終了・再開可能" : "別ホスト") : statusText(session.status)),
+          el("span", `pill ${session.archived ? "archived" : "live"}`, session.archived ? (session.resumable ? "履歴・再開可" : "別ホストの履歴") : statusText(session.status)),
           el("span", "", runtimeText(session.runtime)),
         );
         const last = el("div", "session-item-last", session.lastMessage || session.cwd || "");
@@ -290,12 +320,15 @@
     timeline = [];
     approvals = [];
     lastStreamingAssistant = false;
+    historyHasMore = false;
+    historyOldestSeq = null;
+    historyLoading = false;
     renderSessions();
     renderChat();
     send({ type: "subscribe", sessionId: session.id });
   }
 
-  function renderChat() {
+  function renderChat(preserveScroll = false) {
     if (view !== "sessions") return;
     const empty = $("chat-empty");
     const chat = $("chat-view");
@@ -307,7 +340,7 @@
     empty.classList.add("hidden");
     chat.classList.remove("hidden");
     $("chat-title").textContent = current.title || "Session";
-    $("chat-meta").textContent = `${current.cwd || ""} · ${runtimeText(current.runtime)} · ${current.archived ? (current.resumable ? "終了・再開可能" : "別ホストの履歴") : statusText(current.status)}`;
+    $("chat-meta").textContent = `${current.cwd || ""} · ${runtimeText(current.runtime)} · ${current.archived ? (current.resumable ? "履歴・再開可" : "別ホストの履歴") : statusText(current.status)}`;
     $("chat-model").disabled = Boolean(current.archived);
     $("chat-cancel").classList.toggle("hidden", current.archived || !(current.status === "running" || current.status === "awaiting_approval"));
     $("composer").classList.toggle("hidden", Boolean(current.archived));
@@ -315,13 +348,13 @@
     banner.classList.toggle("hidden", !current.archived);
     if (current.archived) {
       $("archived-text").textContent = current.resumable
-        ? "履歴を表示中。再開すると続きから話せます。"
-        : `この履歴は ${current.originHost || "別のホスト"} のものです。`;
+        ? "このセッションはライブ接続されていません。再開すると続きから話せます。"
+        : `この履歴は ${current.originHost || "別のホスト"} にあります。`;
       $("resume-session").classList.toggle("hidden", !current.resumable);
     }
     renderModel();
     renderApproval();
-    renderTimeline();
+    renderTimeline(preserveScroll);
   }
 
   function renderModel() {
@@ -372,14 +405,41 @@
     }
   }
 
-  function renderTimeline() {
+  function oldestSeqOf(message) {
+    const value = Number(message.oldestSeq);
+    return Number.isFinite(value) && value > 0 ? value : null;
+  }
+
+  function renderTimeline(preserveScroll = false) {
     const list = $("chat-timeline");
+    const previousHeight = list.scrollHeight;
+    const previousTop = list.scrollTop;
     list.replaceChildren();
+    if (historyHasMore) {
+      const row = el("div", "history-row");
+      const button = el("button", "ghost small", historyLoading ? "読み込み中…" : "以前の履歴を読み込む");
+      button.type = "button";
+      button.disabled = historyLoading;
+      button.addEventListener("click", loadOlderHistory);
+      row.append(button);
+      list.append(row);
+    }
     for (const item of timeline) {
       if (!item.text) continue;
       list.append(el("div", `msg ${item.kind}`, item.text));
     }
-    list.scrollTop = list.scrollHeight;
+    if (preserveScroll) list.scrollTop = previousTop + (list.scrollHeight - previousHeight);
+    else list.scrollTop = list.scrollHeight;
+  }
+
+  function loadOlderHistory() {
+    if (!current || !historyHasMore || historyLoading || historyOldestSeq == null) return;
+    historyLoading = true;
+    renderTimeline(true);
+    if (!send({ type: "history", sessionId: current.id, beforeSeq: historyOldestSeq })) {
+      historyLoading = false;
+      renderTimeline(true);
+    }
   }
 
   $("new-session").addEventListener("click", () => {

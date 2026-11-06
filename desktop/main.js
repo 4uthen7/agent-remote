@@ -1,4 +1,4 @@
-const { app, BrowserWindow, clipboard, dialog, ipcMain, shell } = require("electron");
+const { app, BrowserWindow, clipboard, dialog, ipcMain, nativeTheme, shell } = require("electron");
 const { execFileSync, spawn } = require("node:child_process");
 const crypto = require("node:crypto");
 const fs = require("node:fs");
@@ -8,6 +8,7 @@ const path = require("node:path");
 const QRCode = require("qrcode");
 const treeKill = require("tree-kill");
 const pkg = require("./package.json");
+const { checkForUpdate, isReleaseUrl } = require("./update-check.js");
 
 const APP_VERSION = pkg.version;
 const MAX_LOGS = 500;
@@ -46,6 +47,16 @@ let state = {
   logs: [],
   settings: {},
   paths: {},
+  update: {
+    status: "idle",
+    current: APP_VERSION,
+    latest: null,
+    tag: null,
+    releaseUrl: null,
+    assetUrl: null,
+    checkedAt: 0,
+    error: null,
+  },
 };
 let settingsPath = "";
 let tokenPath = "";
@@ -54,6 +65,41 @@ let sessionsDir = "";
 let settings = {};
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const UPDATE_CHECK_MIN_INTERVAL_MS = 10 * 60 * 1000;
+const UPDATE_AUTO_INTERVAL_MS = 6 * 60 * 60 * 1000;
+let updateCheckPromise = null;
+let lastUpdateCheckAt = 0;
+
+function setUpdate(patch) {
+  state = { ...state, update: { ...state.update, ...patch } };
+  broadcast();
+}
+
+async function runUpdateCheck({ force = false, silent = false } = {}) {
+  if (updateCheckPromise) return updateCheckPromise;
+  if (!force && Date.now() - lastUpdateCheckAt < UPDATE_CHECK_MIN_INTERVAL_MS) {
+    return state.update;
+  }
+  updateCheckPromise = (async () => {
+    setUpdate({ status: "checking", error: null });
+    const result = await checkForUpdate({
+      currentVersion: APP_VERSION,
+      platform: process.platform,
+      arch: process.arch,
+    });
+    lastUpdateCheckAt = Date.now();
+    if (silent && result.status === "error") {
+      setUpdate({ ...result, status: "idle", error: null });
+    } else {
+      setUpdate(result);
+    }
+    return state.update;
+  })().finally(() => {
+    updateCheckPromise = null;
+  });
+  return updateCheckPromise;
+}
 
 function pushLog(line) {
   const text = String(line).replace(/\x1b\[[0-9;]*m/g, "").trimEnd();
@@ -555,7 +601,7 @@ function createWindow() {
     minWidth: 940,
     minHeight: 680,
     title: "Agent Remote",
-    backgroundColor: "#071018",
+    backgroundColor: nativeTheme.shouldUseDarkColors ? "#131313" : "#fbfbf9",
     titleBarStyle: process.platform === "darwin" ? "hiddenInset" : "default",
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
@@ -573,6 +619,16 @@ function createWindow() {
 }
 
 ipcMain.handle("host:get-state", () => state);
+ipcMain.handle("host:check-update", async (_event, force) => {
+  await runUpdateCheck({ force: Boolean(force) });
+  return state.update;
+});
+ipcMain.handle("host:open-update", async () => {
+  const url = state.update?.status === "available" ? state.update.releaseUrl : null;
+  if (!url || !isReleaseUrl(url)) return false;
+  await shell.openExternal(url);
+  return true;
+});
 ipcMain.handle("host:start", async () => { await startHost(); return state; });
 ipcMain.handle("host:stop", async () => { await stopHost(); return state; });
 ipcMain.handle("host:refresh-tools", async () => { await detectTools(); return state; });
@@ -635,6 +691,8 @@ if (!gotLock) {
     createWindow();
     await detectTools();
     await startHost();
+    setTimeout(() => { void runUpdateCheck({ silent: true }); }, 2500).unref();
+    setInterval(() => { void runUpdateCheck({ silent: true }); }, UPDATE_AUTO_INTERVAL_MS).unref();
   });
   app.on("activate", () => {
     if (!win) createWindow();

@@ -21,6 +21,9 @@
         <button class="tab" data-view="sessions">セッション</button>
       </nav>
       <div class="top-actions">
+        <button id="update-pill" class="update-pill hidden" type="button" title="更新を確認">
+          更新 <span id="update-version"></span>
+        </button>
         <span class="badge">Node.js 不要</span>
         <span id="status-pill" class="status status-stopped">停止中</span>
       </div>
@@ -173,7 +176,7 @@
         <div class="card-head">
           <div>
             <h2>プロジェクト</h2>
-            <p class="muted">終了したセッションも履歴から再開できます。</p>
+            <p class="muted">ライブ接続されていないセッションも、履歴から再開できます。</p>
           </div>
           <button id="new-session" class="ghost small">新規</button>
         </div>
@@ -208,7 +211,7 @@
             <button id="chat-cancel" class="ghost small hidden">停止</button>
           </header>
           <div id="archived-banner" class="archived-banner hidden">
-            <div><strong>終了したセッション</strong><span id="archived-text"></span></div>
+            <div><strong>履歴を表示中</strong><span id="archived-text"></span></div>
             <button id="resume-session" class="primary small">再開</button>
           </div>
           <div id="approval-banner" class="approval-banner hidden">
@@ -226,8 +229,12 @@
     </main>
 
     <footer class="footer">
-      <span>Agent Remote Desktop <span id="version">—</span></span>
-      <span>プロトコル互換: iOS 0.4.0 / Android 0.5.0</span>
+      <span class="footer-meta">
+        Agent Remote Desktop <span id="version">—</span>
+        <button id="update-check" class="footer-link" type="button">更新を確認</button>
+        <span id="update-status" class="footer-status"></span>
+      </span>
+      <span>プロトコル互換: iOS 0.4.7 / Android 0.5.1</span>
     </footer>
   </div>
   <script src="app.js"></script>

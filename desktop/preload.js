@@ -1,11 +1,14 @@
 const { contextBridge, ipcRenderer } = require("electron");
 
 contextBridge.exposeInMainWorld("hostApi", {
+  platform: process.platform,
   getState: () => ipcRenderer.invoke("host:get-state"),
   start: () => ipcRenderer.invoke("host:start"),
   stop: () => ipcRenderer.invoke("host:stop"),
   refreshTools: () => ipcRenderer.invoke("host:refresh-tools"),
   refreshSetup: () => ipcRenderer.invoke("host:refresh-setup"),
+  checkUpdate: (force) => ipcRenderer.invoke("host:check-update", force),
+  openUpdate: () => ipcRenderer.invoke("host:open-update"),
   installTool: (id) => ipcRenderer.invoke("host:install-tool", id),
   openExternal: (url) => ipcRenderer.invoke("host:open-external", url),
   saveSettings: (settings) => ipcRenderer.invoke("host:save-settings", settings),

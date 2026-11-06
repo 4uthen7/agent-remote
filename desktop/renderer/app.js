@@ -1,4 +1,5 @@
 const $ = (id) => document.getElementById(id);
+if (window.hostApi?.platform === "darwin") document.documentElement.classList.add("mac-titlebar");
 let state = null;
 let busy = false;
 
@@ -32,9 +33,15 @@ function render(next) {
   } else {
     qr.removeAttribute("src");
     qr.classList.remove("ready");
-    $("qr-placeholder").classList.remove("hidden");
-    $("qr-placeholder").lastElementChild.textContent =
-      state.status === "error" ? "起動に失敗しました" : "ホストを起動しています…";
+    const placeholder = $("qr-placeholder");
+    placeholder.classList.remove("hidden");
+    placeholder.classList.toggle("starting", state.status === "starting");
+    placeholder.lastElementChild.textContent =
+      state.status === "error"
+        ? "起動に失敗しました"
+        : state.status === "starting"
+          ? "ホストを起動しています…"
+          : "起動するとQRが表示されます";
   }
 
   const error = $("error");
@@ -55,6 +62,7 @@ function render(next) {
   renderSetup();
   renderForm();
   renderLogs();
+  renderUpdate();
   window.hostState = state;
   window.updateSessionView?.(state);
 }
@@ -74,7 +82,7 @@ function renderTools() {
     name.textContent = tool.name;
     const path = document.createElement("div");
     path.className = "tool-path";
-    path.textContent = tool.installed ? (tool.path || "検出済み") : "未検出";
+    path.textContent = tool.installed ? (tool.path || "検出済み") : "";
     main.append(name, path);
     const right = document.createElement("div");
     right.className = "tool-version";
@@ -129,6 +137,36 @@ function renderForm() {
   if (document.activeElement !== $("syncKey")) $("syncKey").value = settings.syncKey || "";
   if (document.activeElement !== $("syncToken")) $("syncToken").value = settings.syncToken || "";
   lastSettingsKey = key;
+}
+
+function renderUpdate() {
+  const update = state.update || {};
+  const pill = $("update-pill");
+  const version = $("update-version");
+  const status = $("update-status");
+  const available = update.status === "available" && Boolean(update.latest);
+  if (pill) {
+    pill.classList.toggle("hidden", !available);
+    if (available) {
+      version.textContent = update.latest;
+      pill.title = `${update.tag || "最新リリース"} / Desktop ${update.latest} が利用可能`;
+    }
+  }
+  if (!status) return;
+  status.className = "footer-status";
+  if (update.status === "checking") {
+    status.textContent = "確認中…";
+  } else if (available) {
+    status.textContent = `Desktop ${update.latest} が利用可能`;
+    status.classList.add("available");
+  } else if (update.status === "current") {
+    status.textContent = "最新です";
+  } else if (update.status === "error") {
+    status.textContent = "確認できません";
+    status.classList.add("error");
+  } else {
+    status.textContent = "";
+  }
 }
 
 function renderLogs() {
@@ -274,4 +312,24 @@ async function runSetupAction(check) {
 
 $("refresh-setup")?.addEventListener("click", async () => {
   render(await window.hostApi.refreshSetup());
+});
+
+$("update-check")?.addEventListener("click", async () => {
+  const button = $("update-check");
+  button.disabled = true;
+  try {
+    const update = await window.hostApi.checkUpdate(true);
+    if (update) {
+      state.update = update;
+      renderUpdate();
+    }
+  } catch (error) {
+    console.error(error);
+  } finally {
+    button.disabled = false;
+  }
+});
+
+$("update-pill")?.addEventListener("click", () => {
+  void window.hostApi.openUpdate();
 });

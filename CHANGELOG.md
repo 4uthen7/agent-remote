@@ -1,5 +1,23 @@
 # Changelog
 
+## v1.2.0 — 2026-11-06
+
+- **Desktop update check**: the host checks GitHub Releases on launch and every
+  six hours. A newer desktop build shows a quiet "更新" control in the header
+  that opens the release page; the footer also has "更新を確認".
+- **Older desktop history**: agentd already pages snapshots, and the desktop
+  timeline now has "以前の履歴を読み込む" with scroll position preserved. Long
+  DSH sessions can be read back through the whole archive instead of only the
+  newest page.
+- **Clearer session state**: archived sessions are labelled "履歴・再開可"
+  instead of "終了"; the banner explains that the session is not live until it
+  is resumed.
+- **History refresh without restart**: connecting, or reopening the Sessions
+  tab, rescans DSH/Codex/Claude transcripts so sessions created outside the
+  host appear while it stays running.
+- Fix a duplicated field label in the desktop settings.
+- Desktop **1.0.11**; iOS **0.4.7**, Android **0.5.1**, agentd **0.6.1**.
+
 ## v1.1.4 — 2026-10-20
 
 - **Desktop setup checklist**: Tailscale, Node/npm, DSH, Codex, Claude Code and

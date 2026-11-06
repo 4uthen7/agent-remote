@@ -31,6 +31,19 @@ jobs:
       - run: npm run test:archive
       - run: npm run test:sync
 
+  desktop:
+    name: desktop update-check tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: desktop
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - run: node --test test/*.test.js
+
   android:
     name: android assembleDebug
     runs-on: ubuntu-latest
